@@ -84,7 +84,8 @@ final class PlayerEngine {
     func setRate(_ rate: Float) {
         player.defaultRate = rate
         if player.rate != 0 {
-            player.rate = rate
+            // Restarting at the new rate keeps video in sync; setting `rate` mid-playback can stall frames.
+            player.playImmediately(atRate: rate)
         }
     }
 

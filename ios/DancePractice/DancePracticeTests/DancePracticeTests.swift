@@ -43,6 +43,16 @@ struct SpeedTests {
     func normalizesSpeed(input: Double, expected: Double) {
         #expect(PlayerViewModel.normalizedSpeed(input) == expected)
     }
+
+    @Test(arguments: [
+        (0.1, 0.25),
+        (2.3, 2.0),
+        (1.33, 1.35),
+        (1.75, 1.75),
+    ])
+    func sliderSnapsToStep(input: Double, expected: Double) {
+        #expect(SpeedSlider.snapped(input, range: 0.25...2.0, step: 0.05) == expected)
+    }
 }
 
 struct TimeFormatTests {
