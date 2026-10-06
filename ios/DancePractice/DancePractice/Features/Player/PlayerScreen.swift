@@ -76,7 +76,10 @@ struct PlayerScreen: View {
         .onDisappear { viewModel.pause() }
         .alert(
             "出错了",
-            isPresented: Binding(get: { viewModel.errorMessage != nil }, set: { _ in }),
+            isPresented: Binding(
+                get: { viewModel.errorMessage != nil },
+                set: { if !$0 { viewModel.dismissError() } }
+            ),
             presenting: viewModel.errorMessage
         ) { _ in
             Button("好") {}

@@ -26,6 +26,7 @@ final class PlayerViewModel {
 
     @ObservationIgnored private let engine = PlayerEngine()
     @ObservationIgnored private var isScrubbing = false
+    @ObservationIgnored private var resumeAfterScrubbing = false
 
     var player: AVPlayer { engine.player }
 
@@ -76,8 +77,13 @@ final class PlayerViewModel {
         engine.seek(to: currentTime)
     }
 
+    /// Pauses while dragging so seeks aren't fighting playback; `endScrubbing` resumes.
     func beginScrubbing() {
         isScrubbing = true
+        resumeAfterScrubbing = isPlaying
+        if isPlaying {
+            engine.pause()
+        }
     }
 
     func scrub(to time: Double) {
@@ -86,6 +92,14 @@ final class PlayerViewModel {
 
     func endScrubbing() {
         isScrubbing = false
+        if resumeAfterScrubbing {
+            engine.play()
+        }
+        resumeAfterScrubbing = false
+    }
+
+    func dismissError() {
+        errorMessage = nil
     }
 
     // MARK: - Speed & mirror

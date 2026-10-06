@@ -16,10 +16,13 @@ final class PlayerEngine {
 
     private var periodicObserver: Any?
     private var boundaryObserver: Any?
-    private var endObserver: NSObjectProtocol?
+    // nonisolated(unsafe) so deinit can remove it; only touched on the main actor otherwise.
+    nonisolated(unsafe) private var endObserver: NSObjectProtocol?
     private var statusObservation: NSKeyValueObservation?
     private var loop: LoopRange?
     private var duration: Double = 0
+    private var isSeeking = false
+    private var pendingSeek: Double?
 
     init() {
         try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .moviePlayback)
@@ -35,6 +38,12 @@ final class PlayerEngine {
         statusObservation = player.observe(\.timeControlStatus, options: [.initial, .new]) { [weak self] player, _ in
             let isPlaying = player.timeControlStatus != .paused
             Task { @MainActor in self?.onPlayingChange?(isPlaying) }
+        }
+    }
+
+    deinit {
+        if let endObserver {
+            NotificationCenter.default.removeObserver(endObserver)
         }
     }
 
@@ -73,12 +82,20 @@ final class PlayerEngine {
     }
 
     /// Frame-accurate seek, needed for scrubbing and A-B precision.
+    /// Only one seek runs at a time; requests that arrive meanwhile collapse into the latest one.
     func seek(to seconds: Double) {
+        guard !isSeeking else {
+            pendingSeek = seconds
+            return
+        }
+        isSeeking = true
         player.seek(
             to: CMTime(seconds: seconds, preferredTimescale: 600),
             toleranceBefore: .zero,
             toleranceAfter: .zero
-        )
+        ) { [weak self] _ in
+            Task { @MainActor in self?.seekDidFinish() }
+        }
     }
 
     func setRate(_ rate: Float) {
@@ -110,12 +127,21 @@ final class PlayerEngine {
     // MARK: - Private
 
     private func handleTick(_ seconds: Double) {
-        guard seconds.isFinite else { return }
+        // Ticks during a seek report the old position; skip them so the UI doesn't jump back.
+        guard seconds.isFinite, !isSeeking else { return }
         // Fallback for when playback ends up past B without crossing the boundary (e.g. after a seek).
         if let loop, player.rate != 0, seconds > loop.end + 0.1 {
             jumpToLoopStart()
         }
         onTimeChange?(seconds)
+    }
+
+    private func seekDidFinish() {
+        isSeeking = false
+        if let next = pendingSeek {
+            pendingSeek = nil
+            seek(to: next)
+        }
     }
 
     private func jumpToLoopStart() {
