@@ -22,10 +22,12 @@ struct TimelineBar: View {
 
     @State private var isScrubbing = false
     @State private var draggedHandle: LoopHandle?
+    @State private var grabOffset: CGFloat = 0
 
     private let flagRowHeight: CGFloat = 26
     private let stripHeight: CGFloat = 56
     private let handleHitWidth: CGFloat = 44
+    private let flagWidth: CGFloat = 22
     private let coordinateSpaceName = "timeline"
 
     private var loopRange: (start: Double, end: Double)? {
@@ -120,33 +122,50 @@ struct TimelineBar: View {
         .allowsHitTesting(false)
     }
 
-    /// Flag plus a stem down the strip. The hit area is wider than it looks so it's easy to grab.
+    /// Only the flag is grabbable, so taps inside the loop always scrub.
+    /// Flags hang outward (A to the left of its line, B to the right) so they never overlap on short loops.
+    @ViewBuilder
     private func handle(_ which: LoopHandle, at time: Double, width: CGFloat) -> some View {
-        VStack(spacing: 0) {
-            ABMarker(letter: which == .a ? "A" : "B")
-                .scaleEffect(draggedHandle == which ? 1.15 : 1)
-            Rectangle()
-                .fill(Theme.accent)
-                .frame(width: 2)
-        }
-        .frame(width: handleHitWidth, height: flagRowHeight + stripHeight)
-        .contentShape(Rectangle())
-        .gesture(
-            DragGesture(minimumDistance: 0, coordinateSpace: .named(coordinateSpaceName))
-                .onChanged { value in
-                    if draggedHandle == nil {
-                        draggedHandle = which
-                        onHandleDragBegan()
+        let lineX = x(for: time, width: width)
+        let outward: CGFloat = which == .a ? -1 : 1
+        // Kept inside the strip so a handle pushed to either end stays grabbable
+        // (and clear of the screen-edge back swipe).
+        let flagX = clamp(lineX + outward * flagWidth / 2, inset: flagWidth / 2, width: width)
+        let hitX = clamp(lineX + outward * handleHitWidth / 2, inset: handleHitWidth / 2, width: width)
+
+        Rectangle()
+            .fill(Theme.accent)
+            .frame(width: 2, height: stripHeight + flagRowHeight / 2)
+            .position(x: lineX, y: (flagRowHeight * 1.5 + stripHeight) / 2)
+            .allowsHitTesting(false)
+
+        ABMarker(letter: which == .a ? "A" : "B")
+            .scaleEffect(draggedHandle == which ? 1.15 : 1)
+            .offset(x: flagX - hitX)
+            .frame(width: handleHitWidth, height: flagRowHeight)
+            .contentShape(Rectangle())
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .named(coordinateSpaceName))
+                    .onChanged { value in
+                        if draggedHandle == nil {
+                            draggedHandle = which
+                            // Remember where on the flag the finger landed so the line doesn't jump to it.
+                            grabOffset = value.startLocation.x - lineX
+                            onHandleDragBegan()
+                        }
+                        onMoveHandle(which, self.time(for: value.location.x - grabOffset, width: width))
                     }
-                    onMoveHandle(which, self.time(for: value.location.x, width: width))
-                }
-                .onEnded { _ in
-                    draggedHandle = nil
-                    onHandleDragEnded()
-                }
-        )
-        .accessibilityLabel(which == .a ? "A 点" : "B 点")
-        .position(x: x(for: time, width: width), y: (flagRowHeight + stripHeight) / 2)
+                    .onEnded { _ in
+                        draggedHandle = nil
+                        onHandleDragEnded()
+                    }
+            )
+            .accessibilityLabel(which == .a ? "A 点" : "B 点")
+            .position(x: hitX, y: flagRowHeight / 2)
+    }
+
+    private func clamp(_ x: CGFloat, inset: CGFloat, width: CGFloat) -> CGFloat {
+        min(max(x, inset), width - inset)
     }
 
     private func x(for time: Double, width: CGFloat) -> CGFloat {
