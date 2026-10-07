@@ -52,10 +52,21 @@ final class PlayerEngine {
         return seconds.isFinite ? seconds : 0
     }
 
-    /// Loads a local video and returns its duration in seconds.
-    func load(url: URL) async throws -> Double {
+    struct LoadedVideo {
+        let duration: Double
+        /// Size as displayed, after the track's rotation. Zero for audio-only files.
+        let displaySize: CGSize
+    }
+
+    /// Loads a local video and returns its duration and display size.
+    func load(url: URL) async throws -> LoadedVideo {
         let asset = AVURLAsset(url: url)
         let loadedDuration = try await asset.load(.duration).seconds
+        var displaySize = CGSize.zero
+        if let track = try await asset.loadTracks(withMediaType: .video).first {
+            let (size, transform) = try await track.load(.naturalSize, .preferredTransform)
+            displaySize = size.applying(transform)
+        }
 
         let item = AVPlayerItem(asset: asset)
         // Keep the original pitch when slowing down; spectral sounds best for music.
@@ -65,7 +76,7 @@ final class PlayerEngine {
         player.replaceCurrentItem(with: item)
         duration = loadedDuration.isFinite ? loadedDuration : 0
         observeEnd(of: item)
-        return duration
+        return LoadedVideo(duration: duration, displaySize: displaySize)
     }
 
     func play() {

@@ -7,12 +7,20 @@ import SwiftUI
 
 /// Timeline card: current time, a scrubbable strip with a playhead, draggable A/B handles and time ticks.
 struct TimelineBar: View {
+    enum Style {
+        /// Rounded panel, for the regular player layout.
+        case card
+        /// No background, for drawing over fullscreen video.
+        case overlay
+    }
+
     let currentTime: Double
     let duration: Double
     let markA: Double?
     let markB: Double?
     let isLoopEnabled: Bool
     var thumbnails: [CGImage?] = []
+    var style: Style = .card
     let onScrubBegan: () -> Void
     let onScrub: (Double) -> Void
     let onScrubEnded: () -> Void
@@ -25,7 +33,8 @@ struct TimelineBar: View {
     @State private var grabOffset: CGFloat = 0
 
     private let flagRowHeight: CGFloat = 26
-    private let stripHeight: CGFloat = 56
+    /// Overlay is slimmer so less of the fullscreen video is covered.
+    private var stripHeight: CGFloat { style == .card ? 56 : 40 }
     private let handleHitWidth: CGFloat = 44
     private let flagWidth: CGFloat = 22
     private let coordinateSpaceName = "timeline"
@@ -36,22 +45,22 @@ struct TimelineBar: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: style == .card ? 8 : 4) {
             header
             strip
                 .frame(height: flagRowHeight + stripHeight)
-            TimelineTicks(duration: duration)
-                .frame(height: 30)
+            TimelineTicks(duration: duration, isCompact: style == .overlay)
+                .frame(height: style == .card ? 30 : 22)
         }
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.panel))
+        .padding(style == .card ? 14 : 0)
+        .background(RoundedRectangle(cornerRadius: 16).fill(style == .card ? Theme.panel : .clear))
     }
 
     private var header: some View {
         HStack(alignment: .firstTextBaseline) {
             // Tenths matter while placing A/B, so show them during a handle drag.
             Text(draggedHandle == nil ? TimeFormat.clock(currentTime) : TimeFormat.precise(currentTime))
-                .font(.system(size: 28, weight: .semibold).monospacedDigit())
+                .font(.system(size: style == .card ? 28 : 20, weight: .semibold).monospacedDigit())
             Spacer()
             Text("/ \(TimeFormat.clock(duration))")
                 .font(.subheadline.monospacedDigit())
@@ -223,9 +232,11 @@ private struct ThumbnailStrip: View {
 /// Tick marks under the strip, with labels at an interval that fits the video length.
 private struct TimelineTicks: View {
     let duration: Double
+    var isCompact = false
 
     private let minorPerMajor = 5
     private let labelHalfWidth: CGFloat = 18
+    private var majorTickHeight: CGFloat { isCompact ? 6 : 10 }
 
     private var majorInterval: Double {
         switch duration {
@@ -247,8 +258,8 @@ private struct TimelineTicks: View {
                         let isMajor = index % minorPerMajor == 0
                         Rectangle()
                             .fill(Color.white.opacity(isMajor ? 0.6 : 0.25))
-                            .frame(width: 1, height: isMajor ? 10 : 5)
-                            .position(x: x(for: Double(index) * minor, width: width), y: 5)
+                            .frame(width: 1, height: isMajor ? majorTickHeight : majorTickHeight / 2)
+                            .position(x: x(for: Double(index) * minor, width: width), y: majorTickHeight / 2)
                     }
 
                     ForEach(labelTimes(width: width), id: \.self) { time in
@@ -258,7 +269,7 @@ private struct TimelineTicks: View {
                             .fixedSize()
                             .position(
                                 x: min(max(x(for: time, width: width), labelHalfWidth), width - labelHalfWidth),
-                                y: 22
+                                y: isCompact ? 15 : 22
                             )
                     }
                 }

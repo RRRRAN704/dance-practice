@@ -5,6 +5,7 @@
 //  Created by Yiran on 02/10/2026.
 //
 
+import CoreGraphics
 import Testing
 @testable import DancePractice
 
@@ -100,5 +101,25 @@ struct LoopEditingTests {
         #expect(loop.withEnd(10, duration: 198).end == 30 + LoopRange.minimumLength)
         #expect(loop.withStart(-5, duration: 198).start == 0)
         #expect(loop.withEnd(500, duration: 198).end == 198)
+    }
+}
+
+struct VideoOrientationTests {
+    @Test func landscapeVideo() {
+        #expect(!PlayerViewModel.isPortrait(CGSize(width: 1920, height: 1080)))
+    }
+
+    @Test func portraitVideo() {
+        #expect(PlayerViewModel.isPortrait(CGSize(width: 1080, height: 1920)))
+    }
+
+    /// Phone recordings are stored landscape with a 90° transform; the applied size can be negative.
+    @Test func rotatedPhoneRecordingIsPortrait() {
+        let displayed = CGSize(width: 1920, height: 1080).applying(CGAffineTransform(rotationAngle: .pi / 2))
+        #expect(PlayerViewModel.isPortrait(displayed))
+    }
+
+    @Test func audioOnlyIsNotPortrait() {
+        #expect(!PlayerViewModel.isPortrait(.zero))
     }
 }

@@ -10,6 +10,8 @@ struct ControlButton: View {
     let title: String
     let systemImage: String
     var isActive = false
+    /// False shows just the icon, for narrow layouts.
+    var showsTitle = true
     let action: () -> Void
 
     @Environment(\.isEnabled) private var isEnabled
@@ -17,6 +19,7 @@ struct ControlButton: View {
     var body: some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
+                .labelStyle(TitleOrIconLabelStyle(showsTitle: showsTitle))
                 .font(.subheadline.weight(.semibold))
                 .lineLimit(1)
                 .frame(maxWidth: .infinity)
@@ -30,6 +33,19 @@ struct ControlButton: View {
         }
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.4)
+        .accessibilityLabel(title)
+    }
+}
+
+private struct TitleOrIconLabelStyle: LabelStyle {
+    let showsTitle: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        if showsTitle {
+            Label(configuration)
+        } else {
+            configuration.icon
+        }
     }
 }
 

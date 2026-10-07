@@ -1,0 +1,124 @@
+//
+//  PlayerControls.swift
+//  DancePractice
+//
+
+import SwiftUI
+
+// Player controls wired to `PlayerViewModel`, shared by the regular and fullscreen layouts.
+
+struct PlayerTimeline: View {
+    let viewModel: PlayerViewModel
+    var style: TimelineBar.Style = .card
+
+    var body: some View {
+        TimelineBar(
+            currentTime: viewModel.currentTime,
+            duration: viewModel.duration,
+            markA: viewModel.markA,
+            markB: viewModel.markB,
+            isLoopEnabled: viewModel.isLoopEnabled,
+            thumbnails: viewModel.thumbnails,
+            style: style,
+            onScrubBegan: viewModel.beginScrubbing,
+            onScrub: viewModel.scrub(to:),
+            onScrubEnded: viewModel.endScrubbing,
+            onHandleDragBegan: viewModel.beginHandleDrag,
+            onMoveHandle: viewModel.moveHandle(_:to:),
+            onHandleDragEnded: viewModel.endHandleDrag
+        )
+    }
+}
+
+struct PlayerSpeedSlider: View {
+    let viewModel: PlayerViewModel
+    var style: SpeedSlider.Style = .regular
+
+    var body: some View {
+        SpeedSlider(
+            speed: Binding(get: { viewModel.speed }, set: { viewModel.setSpeed($0) }),
+            range: PlayerViewModel.speedRange,
+            step: PlayerViewModel.speedStep,
+            style: style
+        )
+    }
+}
+
+struct MirrorButton: View {
+    let viewModel: PlayerViewModel
+    var showsTitle = true
+
+    var body: some View {
+        ControlButton(
+            title: "镜面",
+            systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right",
+            isActive: viewModel.isMirrored,
+            showsTitle: showsTitle,
+            action: viewModel.toggleMirror
+        )
+    }
+}
+
+struct LoopButton: View {
+    let viewModel: PlayerViewModel
+    var showsTitle = true
+
+    var body: some View {
+        ControlButton(
+            title: "A-B 循环",
+            systemImage: "repeat",
+            isActive: viewModel.isLoopEnabled,
+            showsTitle: showsTitle,
+            action: viewModel.toggleLoop
+        )
+    }
+}
+
+/// Placeholder until the metronome step.
+struct MetronomeButton: View {
+    var showsTitle = true
+
+    var body: some View {
+        ControlButton(title: "节拍", systemImage: "music.note", showsTitle: showsTitle) {}
+            .disabled(true)
+    }
+}
+
+/// Placeholder for the saved-segments list.
+struct SegmentListButton: View {
+    var size: CGFloat = 56
+
+    var body: some View {
+        Button {} label: {
+            Image(systemName: "list.bullet")
+                .font(.title3)
+                .frame(width: size, height: size)
+                .background(RoundedRectangle(cornerRadius: 14).fill(Theme.panel))
+        }
+        .buttonStyle(.plain)
+        .disabled(true)
+        .opacity(0.4)
+        .accessibilityLabel("片段列表")
+    }
+}
+
+/// Round translucent icon button used over fullscreen video.
+struct OverlayIconButton: View {
+    let systemImage: String
+    let accessibilityLabel: String
+    let action: () -> Void
+
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemImage)
+                .font(.body.weight(.semibold))
+                .frame(width: 44, height: 44)
+                .background(Circle().fill(Color.black.opacity(0.45)))
+        }
+        .buttonStyle(.plain)
+        .opacity(isEnabled ? 1 : 0.5)
+        .accessibilityLabel(accessibilityLabel)
+    }
+}

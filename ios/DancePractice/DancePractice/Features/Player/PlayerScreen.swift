@@ -10,74 +10,18 @@ struct PlayerScreen: View {
     let title: String
 
     @State private var viewModel = PlayerViewModel()
+    @State private var isFullscreen = false
+
+    /// Compact height means the phone is in landscape.
+    @Environment(\.verticalSizeClass) private var verticalSizeClass
 
     var body: some View {
-        VStack(spacing: 16) {
-            VideoSurface(player: viewModel.player)
-                .scaleEffect(x: viewModel.isMirrored ? -1 : 1, y: 1)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color.black)
-                .clipped()
-                .onTapGesture { viewModel.togglePlayPause() }
-
-            VStack(spacing: 14) {
-                TimelineBar(
-                    currentTime: viewModel.currentTime,
-                    duration: viewModel.duration,
-                    markA: viewModel.markA,
-                    markB: viewModel.markB,
-                    isLoopEnabled: viewModel.isLoopEnabled,
-                    thumbnails: viewModel.thumbnails,
-                    onScrubBegan: viewModel.beginScrubbing,
-                    onScrub: viewModel.scrub(to:),
-                    onScrubEnded: viewModel.endScrubbing,
-                    onHandleDragBegan: viewModel.beginHandleDrag,
-                    onMoveHandle: viewModel.moveHandle(_:to:),
-                    onHandleDragEnded: viewModel.endHandleDrag
-                )
-
-                SpeedSlider(
-                    speed: Binding(get: { viewModel.speed }, set: { viewModel.setSpeed($0) }),
-                    range: PlayerViewModel.speedRange,
-                    step: PlayerViewModel.speedStep
-                )
-
-                HStack(spacing: 10) {
-                    ControlButton(
-                        title: "镜面",
-                        systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right",
-                        isActive: viewModel.isMirrored,
-                        action: viewModel.toggleMirror
-                    )
-                    ControlButton(
-                        title: "A-B 循环",
-                        systemImage: "repeat",
-                        isActive: viewModel.isLoopEnabled,
-                        action: viewModel.toggleLoop
-                    )
-                    // Placeholder until the metronome step.
-                    ControlButton(title: "节拍", systemImage: "music.note") {}
-                        .disabled(true)
-                }
-
-                HStack(spacing: 12) {
-                    // Placeholder for the saved-segments list.
-                    Button {} label: {
-                        Image(systemName: "list.bullet")
-                            .font(.title3)
-                            .frame(width: 56, height: 56)
-                            .background(RoundedRectangle(cornerRadius: 14).fill(Theme.panel))
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(true)
-                    .opacity(0.4)
-                    .accessibilityLabel("片段列表")
-
-                    PlayButton(isPlaying: viewModel.isPlaying, action: viewModel.togglePlayPause)
-                }
+        Group {
+            if isFullscreen {
+                fullscreenLayout
+            } else {
+                regularLayout
             }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 8)
         }
         .background(Theme.playerBackground.ignoresSafeArea())
         .foregroundStyle(.white)
@@ -91,8 +35,14 @@ struct PlayerScreen: View {
                     .disabled(true)
             }
         }
+        .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
+        .statusBarHidden(isFullscreen)
+        .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
         .task { await viewModel.load(url: videoURL) }
-        .onDisappear { viewModel.pause() }
+        .onDisappear {
+            viewModel.pause()
+            setFullscreen(false)
+        }
         .alert(
             "出错了",
             isPresented: Binding(
@@ -105,5 +55,74 @@ struct PlayerScreen: View {
         } message: { message in
             Text(message)
         }
+    }
+
+    // MARK: - Layouts
+
+    private var regularLayout: some View {
+        VStack(spacing: 16) {
+            video
+                .overlay(alignment: .bottomTrailing) {
+                    Button { setFullscreen(true) } label: {
+                        Image(systemName: "arrow.up.left.and.arrow.down.right")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(width: 36, height: 36)
+                            .background(Circle().fill(Color.black.opacity(0.45)))
+                    }
+                    .buttonStyle(.plain)
+                    .padding(10)
+                    .accessibilityLabel("全屏")
+                }
+
+            VStack(spacing: 14) {
+                PlayerTimeline(viewModel: viewModel)
+                PlayerSpeedSlider(viewModel: viewModel)
+
+                HStack(spacing: 10) {
+                    MirrorButton(viewModel: viewModel)
+                    LoopButton(viewModel: viewModel)
+                    MetronomeButton()
+                }
+
+                HStack(spacing: 12) {
+                    SegmentListButton()
+                    PlayButton(isPlaying: viewModel.isPlaying, action: viewModel.togglePlayPause)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 8)
+        }
+    }
+
+    private var fullscreenLayout: some View {
+        ZStack {
+            video
+                .ignoresSafeArea()
+
+            FullscreenControls(
+                viewModel: viewModel,
+                title: title,
+                isLandscape: verticalSizeClass == .compact,
+                onExit: { setFullscreen(false) }
+            )
+        }
+    }
+
+    private var video: some View {
+        VideoSurface(player: viewModel.player)
+            .scaleEffect(x: viewModel.isMirrored ? -1 : 1, y: 1)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black)
+            .clipped()
+            .contentShape(Rectangle())
+            .onTapGesture { viewModel.togglePlayPause() }
+    }
+
+    // MARK: - Fullscreen
+
+    /// Landscape videos rotate the interface; portrait videos stay upright and just fill the screen.
+    private func setFullscreen(_ fullscreen: Bool) {
+        isFullscreen = fullscreen
+        OrientationLock.set(fullscreen && !viewModel.isPortraitVideo ? .landscape : .portrait)
     }
 }

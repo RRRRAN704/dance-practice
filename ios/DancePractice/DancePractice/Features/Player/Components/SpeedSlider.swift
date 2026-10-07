@@ -9,9 +9,17 @@ import SwiftUI
 /// Tap anywhere on the track to jump there, then keep dragging to fine-tune.
 /// `speed` is only written when the finger lifts, so the player gets one rate change per gesture.
 struct SpeedSlider: View {
+    enum Style {
+        /// Centred value in a rounded panel, for the regular player layout.
+        case regular
+        /// Small value label at the top-left, no panel, for the fullscreen control bar.
+        case compact
+    }
+
     @Binding var speed: Double
     var range: ClosedRange<Double> = 0.25...2.0
     var step: Double = 0.05
+    var style: Style = .regular
 
     /// In-flight value while the finger is down; nil otherwise.
     @State private var dragValue: Double?
@@ -24,9 +32,9 @@ struct SpeedSlider: View {
     private var displayedSpeed: Double { dragValue ?? speed }
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(alignment: style == .compact ? .leading : .center, spacing: style == .compact ? 0 : 4) {
             Text(Self.label(for: displayedSpeed))
-                .font(.title3.weight(.semibold).monospacedDigit())
+                .font(style == .compact ? .subheadline.monospacedDigit() : .title3.weight(.semibold).monospacedDigit())
 
             track
                 .frame(height: thumbSize + 8)
@@ -35,15 +43,15 @@ struct SpeedSlider: View {
                 ForEach(marks, id: \.self) { mark in
                     Button(Self.label(for: mark, suffix: "")) { speed = mark }
                         .buttonStyle(.plain)
-                        .font(.caption.monospacedDigit())
+                        .font(style == .compact ? .caption2.monospacedDigit() : .caption.monospacedDigit())
                         .foregroundStyle(abs(displayedSpeed - mark) < 0.001 ? .white : .secondary)
                         .position(x: x(for: mark, width: geo.size.width), y: geo.size.height / 2)
                 }
             }
             .frame(height: 20)
         }
-        .padding(14)
-        .background(RoundedRectangle(cornerRadius: 16).fill(Theme.panel))
+        .padding(style == .compact ? 0 : 14)
+        .background(RoundedRectangle(cornerRadius: 16).fill(style == .compact ? .clear : Theme.panel))
     }
 
     private var track: some View {

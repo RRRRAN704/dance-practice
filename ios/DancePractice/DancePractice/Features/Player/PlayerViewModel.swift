@@ -27,6 +27,8 @@ final class PlayerViewModel {
     private(set) var markB: Double?
     private(set) var isLoopEnabled = false
     private(set) var errorMessage: String?
+    /// Display size of the video, after rotation; may have negative components from the transform.
+    private(set) var videoSize: CGSize = .zero
     /// One slot per thumbnail; nil until that frame is decoded.
     private(set) var thumbnails: [CGImage?] = []
 
@@ -39,6 +41,13 @@ final class PlayerViewModel {
     var loopRange: LoopRange? {
         guard let markA, let markB else { return nil }
         return LoopRange(start: markA, end: markB, duration: duration)
+    }
+
+    /// Portrait videos stay portrait in fullscreen; landscape ones rotate.
+    var isPortraitVideo: Bool { Self.isPortrait(videoSize) }
+
+    nonisolated static func isPortrait(_ size: CGSize) -> Bool {
+        abs(size.height) > abs(size.width)
     }
 
     init() {
@@ -55,7 +64,9 @@ final class PlayerViewModel {
 
     func load(url: URL) async {
         do {
-            duration = try await engine.load(url: url)
+            let video = try await engine.load(url: url)
+            duration = video.duration
+            videoSize = video.displaySize
             currentTime = 0
             markA = nil
             markB = nil
