@@ -7,6 +7,7 @@
 
 import CoreGraphics
 import Testing
+import UIKit
 @testable import DancePractice
 
 struct LoopRangeTests {
@@ -121,5 +122,50 @@ struct VideoOrientationTests {
 
     @Test func audioOnlyIsNotPortrait() {
         #expect(!PlayerViewModel.isPortrait(.zero))
+    }
+}
+
+struct FullscreenRotationTests {
+    private func action(
+        _ previous: UIDeviceOrientation,
+        _ current: UIDeviceOrientation,
+        fullscreen: Bool,
+        portraitVideo: Bool = false
+    ) -> FullscreenRotation.Action {
+        FullscreenRotation.action(
+            previous: previous, current: current, isFullscreen: fullscreen, isPortraitVideo: portraitVideo
+        )
+    }
+
+    @Test func turningToLandscapeEntersFullscreen() {
+        #expect(action(.portrait, .landscapeLeft, fullscreen: false) == .enter)
+        #expect(action(.portrait, .landscapeRight, fullscreen: false) == .enter)
+    }
+
+    @Test func turningBackToPortraitExits() {
+        #expect(action(.landscapeLeft, .portrait, fullscreen: true) == .exit)
+    }
+
+    @Test func flippingBetweenLandscapesStaysFullscreen() {
+        #expect(action(.landscapeLeft, .landscapeRight, fullscreen: true) == .none)
+    }
+
+    /// Button pressed while holding the phone upright: no change, so it must not exit.
+    @Test func noChangeDoesNothing() {
+        #expect(action(.portrait, .portrait, fullscreen: true) == .none)
+    }
+
+    @Test func portraitVideosIgnoreRotation() {
+        #expect(action(.portrait, .landscapeLeft, fullscreen: false, portraitVideo: true) == .none)
+        #expect(action(.landscapeLeft, .portrait, fullscreen: true, portraitVideo: true) == .none)
+    }
+
+    @Test func onlyPortraitAndLandscapeAreTracked() {
+        #expect(FullscreenRotation.isTracked(.portrait))
+        #expect(FullscreenRotation.isTracked(.landscapeLeft))
+        #expect(!FullscreenRotation.isTracked(.faceUp))
+        #expect(!FullscreenRotation.isTracked(.faceDown))
+        #expect(!FullscreenRotation.isTracked(.unknown))
+        #expect(!FullscreenRotation.isTracked(.portraitUpsideDown))
     }
 }

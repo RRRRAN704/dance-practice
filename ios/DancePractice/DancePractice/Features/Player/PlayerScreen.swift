@@ -17,6 +17,8 @@ struct PlayerScreen: View {
     @AppStorage("player.keepControlsVisible") private var keepControlsVisible = false
     @State private var toastMessage: String?
     @State private var toastTask: Task<Void, Never>?
+    /// Last portrait/landscape device orientation, for rotate-to-fullscreen.
+    @State private var lastDeviceOrientation: UIDeviceOrientation = .portrait
 
     private static let autoHideDelay: Duration = .seconds(3)
 
@@ -54,7 +56,17 @@ struct PlayerScreen: View {
                 showControls()
             }
         }
+        .onAppear {
+            UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+            if FullscreenRotation.isTracked(UIDevice.current.orientation) {
+                lastDeviceOrientation = UIDevice.current.orientation
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIDevice.orientationDidChangeNotification)) { _ in
+            handleDeviceRotation(UIDevice.current.orientation)
+        }
         .onDisappear {
+            UIDevice.current.endGeneratingDeviceOrientationNotifications()
             viewModel.pause()
             setFullscreen(false)
         }
@@ -161,6 +173,22 @@ struct PlayerScreen: View {
         isFullscreen = fullscreen
         OrientationLock.set(fullscreen && !viewModel.isPortraitVideo ? .landscape : .portrait)
         scheduleAutoHide()
+    }
+
+    private func handleDeviceRotation(_ orientation: UIDeviceOrientation) {
+        guard FullscreenRotation.isTracked(orientation) else { return }
+        let action = FullscreenRotation.action(
+            previous: lastDeviceOrientation,
+            current: orientation,
+            isFullscreen: isFullscreen,
+            isPortraitVideo: viewModel.isPortraitVideo
+        )
+        lastDeviceOrientation = orientation
+        switch action {
+        case .enter: setFullscreen(true)
+        case .exit: setFullscreen(false)
+        case .none: break
+        }
     }
 
     /// In fullscreen with the controls hidden, the first tap only brings them back.
