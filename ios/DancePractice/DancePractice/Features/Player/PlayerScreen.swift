@@ -29,10 +29,11 @@ struct PlayerScreen: View {
                     isLoopEnabled: viewModel.isLoopEnabled,
                     onScrubBegan: viewModel.beginScrubbing,
                     onScrub: viewModel.scrub(to:),
-                    onScrubEnded: viewModel.endScrubbing
+                    onScrubEnded: viewModel.endScrubbing,
+                    onHandleDragBegan: viewModel.beginHandleDrag,
+                    onMoveHandle: viewModel.moveHandle(_:to:),
+                    onHandleDragEnded: viewModel.endHandleDrag
                 )
-
-                transportControls
 
                 SpeedSlider(
                     speed: Binding(get: { viewModel.speed }, set: { viewModel.setSpeed($0) }),
@@ -53,16 +54,26 @@ struct PlayerScreen: View {
                         isActive: viewModel.isLoopEnabled,
                         action: viewModel.toggleLoop
                     )
-                    .disabled(viewModel.loopRange == nil)
+                    // Placeholder until the metronome step.
+                    ControlButton(title: "节拍", systemImage: "music.note") {}
+                        .disabled(true)
                 }
 
-                LoopPointsBar(
-                    markA: viewModel.markA,
-                    markB: viewModel.markB,
-                    onSetA: viewModel.setMarkA,
-                    onSetB: { viewModel.setMarkB() },
-                    onClear: viewModel.clearLoop
-                )
+                HStack(spacing: 12) {
+                    // Placeholder for the saved-segments list.
+                    Button {} label: {
+                        Image(systemName: "list.bullet")
+                            .font(.title3)
+                            .frame(width: 56, height: 56)
+                            .background(RoundedRectangle(cornerRadius: 14).fill(Theme.panel))
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(true)
+                    .opacity(0.4)
+                    .accessibilityLabel("片段列表")
+
+                    PlayButton(isPlaying: viewModel.isPlaying, action: viewModel.togglePlayPause)
+                }
             }
             .padding(.horizontal, 16)
             .padding(.bottom, 8)
@@ -72,6 +83,13 @@ struct PlayerScreen: View {
         .preferredColorScheme(.dark)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Placeholder for the more-options menu.
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {} label: { Image(systemName: "ellipsis") }
+                    .disabled(true)
+            }
+        }
         .task { await viewModel.load(url: videoURL) }
         .onDisappear { viewModel.pause() }
         .alert(
@@ -86,29 +104,5 @@ struct PlayerScreen: View {
         } message: { message in
             Text(message)
         }
-    }
-
-    private var transportControls: some View {
-        HStack(spacing: 40) {
-            Button { viewModel.skip(by: -PlayerViewModel.skipInterval) } label: {
-                Image(systemName: "gobackward.5").font(.title2)
-            }
-            .accessibilityLabel("后退 5 秒")
-
-            Button(action: viewModel.togglePlayPause) {
-                Image(systemName: viewModel.isPlaying ? "pause.fill" : "play.fill")
-                    .font(.title)
-                    .foregroundStyle(.black)
-                    .frame(width: 60, height: 60)
-                    .background(Circle().fill(.white))
-            }
-            .accessibilityLabel(viewModel.isPlaying ? "暂停" : "播放")
-
-            Button { viewModel.skip(by: PlayerViewModel.skipInterval) } label: {
-                Image(systemName: "goforward.5").font(.title2)
-            }
-            .accessibilityLabel("前进 5 秒")
-        }
-        .buttonStyle(.plain)
     }
 }

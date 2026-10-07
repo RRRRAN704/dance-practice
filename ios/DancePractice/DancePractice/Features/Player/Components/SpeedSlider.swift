@@ -25,14 +25,8 @@ struct SpeedSlider: View {
 
     var body: some View {
         VStack(spacing: 4) {
-            HStack {
-                Text("速度")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text(Self.label(for: displayedSpeed))
-                    .font(.title3.weight(.semibold).monospacedDigit())
-            }
+            Text(Self.label(for: displayedSpeed))
+                .font(.title3.weight(.semibold).monospacedDigit())
 
             track
                 .frame(height: thumbSize + 8)

@@ -12,7 +12,8 @@ import Observation
 final class PlayerViewModel {
     nonisolated static let speedRange: ClosedRange<Double> = 0.25...2.0
     nonisolated static let speedStep: Double = 0.05
-    static let skipInterval: Double = 5
+    /// Length of the loop created when A-B is turned on with no marks yet.
+    nonisolated static let defaultLoopLength: Double = 8
 
     private(set) var currentTime: Double = 0
     private(set) var duration: Double = 0
@@ -68,13 +69,17 @@ final class PlayerViewModel {
         engine.pause()
     }
 
-    func skip(by delta: Double) {
-        seek(to: currentTime + delta)
+    /// While looping, seeks are kept inside A-B so the loop can't be left by accident.
+    func seek(to time: Double) {
+        currentTime = Self.clampedSeekTime(time, loop: isLoopEnabled ? loopRange : nil, duration: duration)
+        engine.seek(to: currentTime)
     }
 
-    func seek(to time: Double) {
-        currentTime = clampToDuration(time)
-        engine.seek(to: currentTime)
+    nonisolated static func clampedSeekTime(_ time: Double, loop: LoopRange?, duration: Double) -> Double {
+        if let loop {
+            return min(max(time, loop.start), loop.end)
+        }
+        return min(max(time, 0), duration)
     }
 
     /// Pauses while dragging so seeks aren't fighting playback; `endScrubbing` resumes.
@@ -122,39 +127,47 @@ final class PlayerViewModel {
 
     // MARK: - A-B loop
 
-    /// Sets A at the current time. Drops B if it would no longer form a valid segment.
-    func setMarkA() {
-        markA = currentTime
-        if let markB, LoopRange(start: currentTime, end: markB, duration: duration) == nil {
-            self.markB = nil
-        }
-        syncLoop()
-    }
-
-    /// Sets B at the current time. Without A, the loop starts from 0.
-    /// Returns false if B would not be after A.
-    @discardableResult
-    func setMarkB() -> Bool {
-        guard let range = LoopRange(start: markA ?? 0, end: currentTime, duration: duration) else {
-            return false
-        }
-        markA = range.start
-        markB = range.end
-        syncLoop()
-        return true
-    }
-
+    /// Turning on reuses the remembered marks, or creates a default segment from the current time.
+    /// Turning off keeps the marks for next time.
     func toggleLoop() {
-        guard loopRange != nil else { return }
+        if !isLoopEnabled, loopRange == nil {
+            guard let range = Self.defaultLoopRange(at: currentTime, duration: duration) else { return }
+            markA = range.start
+            markB = range.end
+        }
         isLoopEnabled.toggle()
         syncLoop()
     }
 
-    func clearLoop() {
-        markA = nil
-        markB = nil
-        isLoopEnabled = false
+    /// `defaultLoopLength` starting at `time`, shifted back if it would run past the end.
+    nonisolated static func defaultLoopRange(at time: Double, duration: Double) -> LoopRange? {
+        let start = max(0, min(time, duration - defaultLoopLength))
+        return LoopRange(start: start, end: start + defaultLoopLength, duration: duration)
+    }
+
+    /// Pauses while an A/B handle is dragged; `endHandleDrag` applies the loop and resumes.
+    func beginHandleDrag() {
+        beginScrubbing()
+    }
+
+    /// Moves one end of the loop and shows the frame under the handle.
+    func moveHandle(_ handle: LoopHandle, to time: Double) {
+        guard let range = loopRange else { return }
+        let moved = handle == .a
+            ? range.withStart(time, duration: duration)
+            : range.withEnd(time, duration: duration)
+        markA = moved.start
+        markB = moved.end
+        currentTime = handle == .a ? moved.start : moved.end
+        engine.seek(to: currentTime)
+    }
+
+    func endHandleDrag() {
         syncLoop()
+        if let markA {
+            seek(to: markA)
+        }
+        endScrubbing()
     }
 
     // MARK: - Private
@@ -164,9 +177,5 @@ final class PlayerViewModel {
             isLoopEnabled = false
         }
         engine.setLoop(isLoopEnabled ? loopRange : nil)
-    }
-
-    private func clampToDuration(_ time: Double) -> Double {
-        min(max(time, 0), duration)
     }
 }

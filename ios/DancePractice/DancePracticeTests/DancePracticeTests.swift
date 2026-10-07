@@ -66,3 +66,39 @@ struct TimeFormatTests {
         #expect(TimeFormat.precise(61.05) == "01:01.0")
     }
 }
+
+struct LoopEditingTests {
+    @Test func defaultLoopStartsAtCurrentTime() throws {
+        let range = try #require(PlayerViewModel.defaultLoopRange(at: 30, duration: 198))
+        #expect(range.start == 30)
+        #expect(range.end == 38)
+    }
+
+    @Test func defaultLoopShiftsBackNearEnd() throws {
+        let range = try #require(PlayerViewModel.defaultLoopRange(at: 195, duration: 198))
+        #expect(range.start == 190)
+        #expect(range.end == 198)
+    }
+
+    @Test func defaultLoopFitsShortVideo() throws {
+        let range = try #require(PlayerViewModel.defaultLoopRange(at: 2, duration: 5))
+        #expect(range.start == 0)
+        #expect(range.end == 5)
+    }
+
+    @Test func seekIsClampedToLoop() throws {
+        let loop = try #require(LoopRange(start: 30, end: 38, duration: 198))
+        #expect(PlayerViewModel.clampedSeekTime(10, loop: loop, duration: 198) == 30)
+        #expect(PlayerViewModel.clampedSeekTime(50, loop: loop, duration: 198) == 38)
+        #expect(PlayerViewModel.clampedSeekTime(50, loop: nil, duration: 198) == 50)
+        #expect(PlayerViewModel.clampedSeekTime(300, loop: nil, duration: 198) == 198)
+    }
+
+    @Test func handlesKeepMinimumLength() throws {
+        let loop = try #require(LoopRange(start: 30, end: 38, duration: 198))
+        #expect(loop.withStart(40, duration: 198).start == 38 - LoopRange.minimumLength)
+        #expect(loop.withEnd(10, duration: 198).end == 30 + LoopRange.minimumLength)
+        #expect(loop.withStart(-5, duration: 198).start == 0)
+        #expect(loop.withEnd(500, duration: 198).end == 198)
+    }
+}
