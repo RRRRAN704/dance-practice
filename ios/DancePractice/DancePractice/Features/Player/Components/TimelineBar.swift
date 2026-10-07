@@ -6,13 +6,13 @@
 import SwiftUI
 
 /// Timeline card: current time, a scrubbable strip with a playhead, draggable A/B handles and time ticks.
-/// The thumbnail strip (Step 5) fills the strip area.
 struct TimelineBar: View {
     let currentTime: Double
     let duration: Double
     let markA: Double?
     let markB: Double?
     let isLoopEnabled: Bool
+    var thumbnails: [CGImage?] = []
     let onScrubBegan: () -> Void
     let onScrub: (Double) -> Void
     let onScrubEnded: () -> Void
@@ -65,16 +65,18 @@ struct TimelineBar: View {
             let stripMidY = flagRowHeight + stripHeight / 2
 
             ZStack(alignment: .topLeading) {
-                RoundedRectangle(cornerRadius: 6)
-                    .fill(Color.white.opacity(0.08))
-                    .frame(width: width, height: stripHeight)
-                    .position(x: width / 2, y: stripMidY)
+                ThumbnailStrip(images: thumbnails, dimmed: loopRange.map {
+                    (x(for: $0.start, width: width), x(for: $0.end, width: width))
+                })
+                .frame(width: width, height: stripHeight)
+                .clipShape(RoundedRectangle(cornerRadius: 6))
+                .position(x: width / 2, y: stripMidY)
 
                 if let loopRange {
                     let startX = x(for: loopRange.start, width: width)
                     let endX = x(for: loopRange.end, width: width)
                     RoundedRectangle(cornerRadius: 4)
-                        .fill(Theme.accent.opacity(0.15))
+                        .fill(Theme.accent.opacity(0.1))
                         .overlay(RoundedRectangle(cornerRadius: 4).stroke(Theme.accent, lineWidth: 2))
                         .frame(width: max(endX - startX, 2), height: stripHeight)
                         .position(x: (startX + endX) / 2, y: stripMidY)
@@ -176,6 +178,45 @@ struct TimelineBar: View {
     private func time(for x: CGFloat, width: CGFloat) -> Double {
         guard width > 0 else { return 0 }
         return duration * Double(min(max(x / width, 0), 1))
+    }
+}
+
+/// Frames laid side by side. While looping, everything outside A-B is darkened so the loop stands out.
+private struct ThumbnailStrip: View {
+    let images: [CGImage?]
+    /// Loop edges in points; nil when not looping.
+    let dimmed: (start: CGFloat, end: CGFloat)?
+
+    var body: some View {
+        GeometryReader { geo in
+            let slotWidth = geo.size.width / CGFloat(max(images.count, 1))
+
+            ZStack(alignment: .topLeading) {
+                Color.white.opacity(0.08)
+
+                HStack(spacing: 0) {
+                    ForEach(images.indices, id: \.self) { index in
+                        if let image = images[index] {
+                            Image(decorative: image, scale: 1)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: slotWidth, height: geo.size.height)
+                                .clipped()
+                        } else {
+                            Color.clear.frame(width: slotWidth)
+                        }
+                    }
+                }
+
+                if let dimmed {
+                    Color.black.opacity(0.5)
+                        .frame(width: max(dimmed.start, 0))
+                    Color.black.opacity(0.5)
+                        .frame(width: max(geo.size.width - dimmed.end, 0))
+                        .offset(x: dimmed.end)
+                }
+            }
+        }
     }
 }
 

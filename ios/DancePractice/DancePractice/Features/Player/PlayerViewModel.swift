@@ -14,6 +14,9 @@ final class PlayerViewModel {
     nonisolated static let speedStep: Double = 0.05
     /// Length of the loop created when A-B is turned on with no marks yet.
     nonisolated static let defaultLoopLength: Double = 8
+    static let thumbnailCount = 12
+    /// Pixels; tall enough for the 56pt strip at 3x.
+    static let thumbnailMaxSize = CGSize(width: 300, height: 168)
 
     private(set) var currentTime: Double = 0
     private(set) var duration: Double = 0
@@ -24,6 +27,8 @@ final class PlayerViewModel {
     private(set) var markB: Double?
     private(set) var isLoopEnabled = false
     private(set) var errorMessage: String?
+    /// One slot per thumbnail; nil until that frame is decoded.
+    private(set) var thumbnails: [CGImage?] = []
 
     @ObservationIgnored private let engine = PlayerEngine()
     @ObservationIgnored private var isScrubbing = false
@@ -58,6 +63,21 @@ final class PlayerViewModel {
             engine.setRate(Float(speed))
         } catch {
             errorMessage = "视频加载失败：\(error.localizedDescription)"
+            return
+        }
+        await loadThumbnails(url: url)
+    }
+
+    /// Runs inside the screen's `.task`, so leaving the screen cancels it.
+    private func loadThumbnails(url: URL) async {
+        thumbnails = Array(repeating: nil, count: Self.thumbnailCount)
+        await ThumbnailGenerator.generate(
+            url: url,
+            duration: duration,
+            count: Self.thumbnailCount,
+            maximumSize: Self.thumbnailMaxSize
+        ) { index, image in
+            thumbnails[index] = image
         }
     }
 

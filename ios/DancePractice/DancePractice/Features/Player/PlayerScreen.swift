@@ -27,6 +27,7 @@ struct PlayerScreen: View {
                     markA: viewModel.markA,
                     markB: viewModel.markB,
                     isLoopEnabled: viewModel.isLoopEnabled,
+                    thumbnails: viewModel.thumbnails,
                     onScrubBegan: viewModel.beginScrubbing,
                     onScrub: viewModel.scrub(to:),
                     onScrubEnded: viewModel.endScrubbing,
