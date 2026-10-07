@@ -11,6 +11,14 @@ struct PlayerScreen: View {
 
     @State private var viewModel = PlayerViewModel()
     @State private var isFullscreen = false
+    @State private var controlsVisible = true
+    @State private var hideControlsTask: Task<Void, Never>?
+    /// Remembered across videos and launches: someone who pins once usually wants it every time.
+    @AppStorage("player.keepControlsVisible") private var keepControlsVisible = false
+    @State private var toastMessage: String?
+    @State private var toastTask: Task<Void, Never>?
+
+    private static let autoHideDelay: Duration = .seconds(3)
 
     /// Compact height means the phone is in landscape.
     @Environment(\.verticalSizeClass) private var verticalSizeClass
@@ -39,6 +47,13 @@ struct PlayerScreen: View {
         .statusBarHidden(isFullscreen)
         .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
         .task { await viewModel.load(url: videoURL) }
+        .onChange(of: viewModel.isPlaying) { _, isPlaying in
+            if isPlaying {
+                scheduleAutoHide()
+            } else {
+                showControls()
+            }
+        }
         .onDisappear {
             viewModel.pause()
             setFullscreen(false)
@@ -103,8 +118,29 @@ struct PlayerScreen: View {
                 viewModel: viewModel,
                 title: title,
                 isLandscape: verticalSizeClass == .compact,
+                isPinned: keepControlsVisible,
+                onTogglePin: togglePin,
                 onExit: { setFullscreen(false) }
             )
+            // Any touch on the controls (including long scrubs and A/B drags) holds the timer;
+            // it restarts when the finger lifts.
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in hideControlsTask?.cancel() }
+                    .onEnded { _ in scheduleAutoHide() }
+            )
+            .opacity(controlsVisible ? 1 : 0)
+            .allowsHitTesting(controlsVisible)
+
+            if let toastMessage {
+                Text(toastMessage)
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Capsule().fill(Color.black.opacity(0.65)))
+                    .transition(.opacity)
+                    .allowsHitTesting(false)
+            }
         }
     }
 
@@ -115,7 +151,7 @@ struct PlayerScreen: View {
             .background(Color.black)
             .clipped()
             .contentShape(Rectangle())
-            .onTapGesture { viewModel.togglePlayPause() }
+            .onTapGesture(perform: handleVideoTap)
     }
 
     // MARK: - Fullscreen
@@ -124,5 +160,52 @@ struct PlayerScreen: View {
     private func setFullscreen(_ fullscreen: Bool) {
         isFullscreen = fullscreen
         OrientationLock.set(fullscreen && !viewModel.isPortraitVideo ? .landscape : .portrait)
+        scheduleAutoHide()
+    }
+
+    /// In fullscreen with the controls hidden, the first tap only brings them back.
+    private func handleVideoTap() {
+        if isFullscreen && !controlsVisible {
+            scheduleAutoHide()
+        } else {
+            viewModel.togglePlayPause()
+        }
+    }
+
+    // MARK: - Auto-hide
+
+    /// Shows the controls and, while playing in fullscreen, hides them after `autoHideDelay`.
+    private func scheduleAutoHide() {
+        showControls()
+        guard isFullscreen, viewModel.isPlaying, !keepControlsVisible else { return }
+        hideControlsTask = Task {
+            try? await Task.sleep(for: Self.autoHideDelay)
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.3)) { controlsVisible = false }
+        }
+    }
+
+    private func togglePin() {
+        keepControlsVisible.toggle()
+        showToast(keepControlsVisible ? "控件已固定" : "已取消固定")
+        scheduleAutoHide()
+    }
+
+    private func showToast(_ message: String) {
+        toastTask?.cancel()
+        withAnimation(.easeInOut(duration: 0.2)) { toastMessage = message }
+        toastTask = Task {
+            try? await Task.sleep(for: .seconds(1.2))
+            guard !Task.isCancelled else { return }
+            withAnimation(.easeInOut(duration: 0.3)) { toastMessage = nil }
+        }
+    }
+
+    private func showControls() {
+        hideControlsTask?.cancel()
+        hideControlsTask = nil
+        if !controlsVisible {
+            withAnimation(.easeInOut(duration: 0.2)) { controlsVisible = true }
+        }
     }
 }

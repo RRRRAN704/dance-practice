@@ -106,6 +106,7 @@ struct SegmentListButton: View {
 struct OverlayIconButton: View {
     let systemImage: String
     let accessibilityLabel: String
+    var isActive = false
     let action: () -> Void
 
     @Environment(\.isEnabled) private var isEnabled
@@ -114,6 +115,7 @@ struct OverlayIconButton: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.body.weight(.semibold))
+                .foregroundStyle(isActive ? Theme.accent : .white)
                 .frame(width: 44, height: 44)
                 .background(Circle().fill(Color.black.opacity(0.45)))
         }

@@ -11,6 +11,9 @@ struct FullscreenControls: View {
     let viewModel: PlayerViewModel
     let title: String
     let isLandscape: Bool
+    /// Pinned controls never auto-hide.
+    let isPinned: Bool
+    let onTogglePin: () -> Void
     let onExit: () -> Void
 
     var body: some View {
@@ -22,16 +25,26 @@ struct FullscreenControls: View {
     }
 
     private var topBar: some View {
-        HStack {
+        HStack(spacing: 8) {
             OverlayIconButton(systemImage: "chevron.left", accessibilityLabel: "退出全屏", action: onExit)
             Spacer()
-            Text(title)
-                .font(.headline)
-                .lineLimit(1)
-            Spacer()
+            OverlayIconButton(
+                systemImage: isPinned ? "pin.fill" : "pin",
+                accessibilityLabel: isPinned ? "取消固定控件" : "固定控件",
+                isActive: isPinned,
+                action: onTogglePin
+            )
             // Placeholder for the more-options menu.
             OverlayIconButton(systemImage: "ellipsis", accessibilityLabel: "更多") {}
                 .disabled(true)
+        }
+        // Centred on the screen regardless of how many buttons sit on each side.
+        .overlay {
+            Text(title)
+                .font(.headline)
+                .lineLimit(1)
+                .padding(.horizontal, 104)
+                .allowsHitTesting(false)
         }
         .padding(.horizontal, 16)
         .padding(.top, 8)
