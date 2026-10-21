@@ -12,6 +12,7 @@ struct RootTabView: View {
     }
 
     @State private var selection: Tab = Self.initialTab
+    @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
 
     /// Debug builds accept `-startTab stats` (etc.) so a screen can be opened directly for screenshots.
     private static var initialTab: Tab {
@@ -39,23 +40,12 @@ struct RootTabView: View {
                 .tabItem { Label("统计", systemImage: "chart.bar") }
                 .tag(Tab.stats)
 
-            TabPlaceholder(title: "我的", systemImage: "person")
+            ProfileScreen()
                 .tabItem { Label("我的", systemImage: "person") }
                 .tag(Tab.profile)
         }
-    }
-}
-
-/// Stand-in for a tab that hasn't been built yet.
-private struct TabPlaceholder: View {
-    let title: String
-    let systemImage: String
-
-    var body: some View {
-        NavigationStack {
-            ContentUnavailableView(title, systemImage: systemImage, description: Text("即将上线"))
-                .navigationTitle(title)
-        }
+        .onAppear { appearance.apply() }
+        .onChange(of: appearance) { appearance.apply() }
     }
 }
 

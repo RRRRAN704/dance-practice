@@ -42,6 +42,19 @@ enum VideoFileStore {
         try? FileManager.default.removeItem(at: url(for: fileName))
     }
 
+    /// File name → size in bytes for everything stored (videos and covers).
+    static func fileSizes() -> [String: Int64] {
+        let keys: [URLResourceKey] = [.fileSizeKey, .isRegularFileKey]
+        guard let urls = try? FileManager.default.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: keys
+        ) else { return [:] }
+        return urls.reduce(into: [:]) { sizes, url in
+            guard let values = try? url.resourceValues(forKeys: Set(keys)), values.isRegularFile == true else { return }
+            sizes[url.lastPathComponent] = Int64(values.fileSize ?? 0)
+        }
+    }
+
     private static var directoryURL: URL {
         URL.documentsDirectory.appending(path: "Videos", directoryHint: .isDirectory)
     }
