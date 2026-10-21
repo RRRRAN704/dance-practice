@@ -455,3 +455,65 @@ struct HomeFormatTests {
         #expect(HomeScreen.greeting(hour: 2) == "晚上好")
     }
 }
+
+@MainActor
+struct StatsTabTests {
+    private var calendar: Calendar {
+        var base = Calendar(identifier: .gregorian)
+        base.timeZone = TimeZone(identifier: "Europe/London")!
+        return PracticeStats.calendar(base: base)
+    }
+
+    private func date(_ day: Int, _ hour: Int = 12) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: 10, day: day, hour: hour))!
+    }
+
+    @Test func longestStreakFindsTheBestRun() {
+        let days = PracticeStats.practicedDays(
+            [date(1), date(2), date(3), date(4), date(10), date(11), date(20)],
+            calendar: calendar
+        )
+        #expect(PracticeStats.longestStreak(days: days, calendar: calendar) == 4)
+        #expect(PracticeStats.longestStreak(days: [], calendar: calendar) == 0)
+    }
+
+    @Test func recentDaysFillGapsWithZero() {
+        let room = PracticeRoom(name: "R", videoFileName: "r.mov")
+        let sessions = [
+            PracticeSession(startedAt: date(21, 9), duration: 600, room: room),
+            PracticeSession(startedAt: date(21, 20), duration: 300, room: room),
+            PracticeSession(startedAt: date(19), duration: 120, room: room),
+        ]
+        let totals = PracticeStats.totalsByDay(sessions, calendar: calendar)
+        let days = PracticeStats.recentDays(totals, count: 3, now: date(21, 22), calendar: calendar)
+        #expect(days.map(\.seconds) == [120, 0, 900])
+        #expect(days.last?.day == calendar.startOfDay(for: date(21)))
+    }
+
+    @Test func heatmapEndsWithTheCurrentWeek() {
+        let weeks = PracticeStats.heatmapWeeks(weeks: 12, now: date(21), calendar: calendar)
+        #expect(weeks.count == 12)
+        #expect(weeks.allSatisfy { $0.count == 7 })
+        #expect(weeks.last?.first == calendar.startOfDay(for: date(19)))   // Monday this week
+    }
+
+    @Test(arguments: [(0.0, 0), (59.0, 0), (60.0, 1), (899.0, 1), (900.0, 2), (1800.0, 3), (3600.0, 4)])
+    func heatLevelBands(seconds: Double, level: Int) {
+        #expect(PracticeStats.heatLevel(seconds) == level)
+    }
+
+    @Test func genreTotalsSortBiggestFirstWithUnsetLast() {
+        let kpop = PracticeRoom(name: "A", videoFileName: "a.mov", genre: .kpop)
+        let jazz = PracticeRoom(name: "B", videoFileName: "b.mov", genre: .jazz)
+        let unset = PracticeRoom(name: "C", videoFileName: "c.mov")
+        let sessions = [
+            PracticeSession(startedAt: .now, duration: 100, room: jazz),
+            PracticeSession(startedAt: .now, duration: 300, room: kpop),
+            PracticeSession(startedAt: .now, duration: 100, room: unset),
+            PracticeSession(startedAt: .now, duration: 50, room: jazz),
+        ]
+        let shares = PracticeStats.genreTotals(sessions)
+        #expect(shares.map(\.genre) == [.kpop, .jazz, nil])
+        #expect(shares.map(\.seconds) == [300, 150, 100])
+    }
+}
