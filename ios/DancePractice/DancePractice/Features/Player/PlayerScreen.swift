@@ -8,6 +8,8 @@ import SwiftUI
 struct PlayerScreen: View {
     let videoURL: URL
     let title: String
+    /// Called when leaving the screen or the app goes to the background. The player doesn't store anything itself.
+    var onPracticeFinished: ((PracticeRecord) -> Void)?
 
     @State private var viewModel = PlayerViewModel()
     @State private var isFullscreen = false
@@ -24,6 +26,7 @@ struct PlayerScreen: View {
 
     /// Compact height means the phone is in landscape.
     @Environment(\.verticalSizeClass) private var verticalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Group {
@@ -68,7 +71,14 @@ struct PlayerScreen: View {
         .onDisappear {
             UIDevice.current.endGeneratingDeviceOrientationNotifications()
             viewModel.pause()
+            reportPractice()
             setFullscreen(false)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // The app may be killed while in the background, so log what we have now.
+            if phase == .background {
+                reportPractice()
+            }
         }
         .alert(
             "出错了",
@@ -169,6 +179,12 @@ struct PlayerScreen: View {
     // MARK: - Fullscreen
 
     /// Landscape videos rotate the interface; portrait videos stay upright and just fill the screen.
+    private func reportPractice() {
+        if let record = viewModel.finishPractice() {
+            onPracticeFinished?(record)
+        }
+    }
+
     private func setFullscreen(_ fullscreen: Bool) {
         isFullscreen = fullscreen
         OrientationLock.set(fullscreen && !viewModel.isPortraitVideo ? .landscape : .portrait)

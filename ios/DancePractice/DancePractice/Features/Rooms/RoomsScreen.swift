@@ -43,9 +43,7 @@ struct RoomsScreen: View {
                 }
             }
             .navigationDestination(for: PracticeRoom.self) { room in
-                PlayerScreen(videoURL: room.videoURL, title: room.name)
-                    .toolbar(.hidden, for: .tabBar)
-                    .onAppear { room.lastOpenedAt = .now }
+                RoomPlayerScreen(room: room)
             }
             .sheet(isPresented: $isCreating) {
                 RoomFormSheet()

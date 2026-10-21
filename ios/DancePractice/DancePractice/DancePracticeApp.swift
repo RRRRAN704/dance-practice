@@ -16,6 +16,6 @@ struct DancePracticeApp: App {
         WindowGroup {
             RootTabView()
         }
-        .modelContainer(for: PracticeRoom.self)
+        .modelContainer(for: [PracticeRoom.self, PracticeSession.self])
     }
 }

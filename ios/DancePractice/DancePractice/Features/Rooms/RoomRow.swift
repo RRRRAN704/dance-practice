@@ -25,6 +25,10 @@ struct RoomRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
+                Text(practiceSummary)
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
+                    .lineLimit(1)
             }
         }
         .padding(.vertical, 4)
@@ -46,6 +50,12 @@ struct RoomRow: View {
                         .foregroundStyle(.secondary)
                 }
         }
+    }
+
+    /// "累计 1.5 小时 · 上次 今天 20:12"
+    private var practiceSummary: String {
+        guard let last = room.lastPracticedAt else { return "还没有练习记录" }
+        return "累计 \(TimeFormat.practiceDuration(room.totalPracticeTime)) · 上次 \(TimeFormat.lastPracticed(last))"
     }
 
     /// "Artist · Genre", skipping whichever is missing.
