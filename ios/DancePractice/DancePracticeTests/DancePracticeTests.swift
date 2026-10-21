@@ -236,3 +236,115 @@ struct RoomFilterTests {
         #expect(RoomFilter.rooms(rooms, genre: .other).isEmpty)
     }
 }
+
+struct PracticeTimerTests {
+    private let t0 = Date(timeIntervalSince1970: 1_000_000)
+
+    @Test func countsOnlyPlayingTime() throws {
+        var timer = PracticeTimer()
+        timer.start(at: t0)
+        timer.stop(at: t0 + 30)          // played 30s
+        timer.start(at: t0 + 90)         // paused 60s, not counted
+        timer.stop(at: t0 + 110)         // played 20s
+        let recordResult = timer.finish(at: t0 + 200)
+        let record = try #require(recordResult)
+        #expect(record.duration == 50)
+        #expect(record.startedAt == t0)
+    }
+
+    @Test func includesTheRunningStretchWhenFinished() throws {
+        var timer = PracticeTimer()
+        timer.start(at: t0)
+        let recordResult = timer.finish(at: t0 + 15)
+        let record = try #require(recordResult)
+        #expect(record.duration == 15)
+    }
+
+    @Test func dropsSessionsUnderTheMinimum() {
+        var timer = PracticeTimer()
+        timer.start(at: t0)
+        timer.stop(at: t0 + PracticeTimer.minimumDuration - 1)
+        let result = timer.finish(at: t0 + 60)
+        #expect(result == nil)
+    }
+
+    @Test func neverStartedGivesNothing() {
+        var timer = PracticeTimer()
+        let result = timer.finish(at: t0)
+        #expect(result == nil)
+    }
+
+    @Test func repeatedStartOrStopIsIgnored() throws {
+        var timer = PracticeTimer()
+        timer.start(at: t0)
+        timer.start(at: t0 + 10)         // still counts from t0
+        timer.stop(at: t0 + 20)
+        timer.stop(at: t0 + 40)          // already stopped
+        let recordResult = timer.finish(at: t0 + 50)
+        let record = try #require(recordResult)
+        #expect(record.duration == 20)
+    }
+
+    @Test func finishWhilePlayingStartsAFreshSession() throws {
+        var timer = PracticeTimer()
+        timer.start(at: t0)
+        _ = timer.finish(at: t0 + 20)
+        #expect(timer.isRunning)
+        let nextResult = timer.finish(at: t0 + 45)
+        let next = try #require(nextResult)
+        #expect(next.startedAt == t0 + 20)
+        #expect(next.duration == 25)
+    }
+}
+
+@MainActor
+struct PracticeSessionTests {
+    private func makeContext() throws -> ModelContext {
+        let container = try ModelContainer(
+            for: PracticeRoom.self, PracticeSession.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        return ModelContext(container)
+    }
+
+    @Test func roomTotalsAddUpItsSessions() throws {
+        let context = try makeContext()
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "a.mov", genre: .kpop)
+        context.insert(room)
+        let early = Date(timeIntervalSince1970: 1_000)
+        let late = Date(timeIntervalSince1970: 5_000)
+        context.insert(PracticeSession(startedAt: late, duration: 120, room: room))
+        context.insert(PracticeSession(startedAt: early, duration: 60, room: room))
+        try context.save()
+
+        #expect(room.totalPracticeTime == 180)
+        #expect(room.lastPracticedAt == late)
+    }
+
+    @Test func deletingRoomKeepsSessionsWithSnapshot() throws {
+        let context = try makeContext()
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "a.mov", genre: .kpop)
+        context.insert(room)
+        context.insert(PracticeSession(startedAt: .now, duration: 60, room: room))
+        try context.save()
+
+        context.delete(room)
+        try context.save()
+
+        let sessions = try context.fetch(FetchDescriptor<PracticeSession>())
+        #expect(sessions.count == 1)
+        #expect(sessions.first?.room == nil)
+        #expect(sessions.first?.roomName == "Smoothie")
+        #expect(sessions.first?.genre == .kpop)
+    }
+
+    @Test func sessionGenreFollowsLaterRoomEdits() throws {
+        let context = try makeContext()
+        let room = PracticeRoom(name: "Untitled", videoFileName: "a.mov")
+        context.insert(room)
+        let session = PracticeSession(startedAt: .now, duration: 60, room: room)
+        context.insert(session)
+        room.genre = .jazz
+        #expect(session.genre == .jazz)
+    }
+}

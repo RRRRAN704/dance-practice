@@ -22,6 +22,9 @@ final class PracticeRoom {
     var createdAt: Date
     /// Drives "recent rooms" on Home.
     var lastOpenedAt: Date?
+    /// Deleting the room keeps its sessions (they just lose the link).
+    @Relationship(deleteRule: .nullify, inverse: \PracticeSession.room)
+    var sessions: [PracticeSession] = []
 
     init(
         name: String,
@@ -50,6 +53,10 @@ final class PracticeRoom {
     var videoURL: URL { VideoFileStore.url(for: videoFileName) }
 
     var coverURL: URL? { coverFileName.map(VideoFileStore.url(for:)) }
+
+    var totalPracticeTime: TimeInterval { sessions.reduce(0) { $0 + $1.duration } }
+
+    var lastPracticedAt: Date? { sessions.map(\.startedAt).max() }
 
     /// Every file this room owns, for cleanup on delete.
     var fileNames: [String] { [videoFileName, coverFileName].compactMap { $0 } }

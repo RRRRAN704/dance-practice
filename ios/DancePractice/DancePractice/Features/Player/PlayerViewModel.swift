@@ -35,6 +35,7 @@ final class PlayerViewModel {
     @ObservationIgnored private let engine = PlayerEngine()
     @ObservationIgnored private var isScrubbing = false
     @ObservationIgnored private var resumeAfterScrubbing = false
+    @ObservationIgnored private var practiceTimer = PracticeTimer()
 
     var player: AVPlayer { engine.player }
 
@@ -56,7 +57,13 @@ final class PlayerViewModel {
             self.currentTime = time
         }
         engine.onPlayingChange = { [weak self] isPlaying in
-            self?.isPlaying = isPlaying
+            guard let self else { return }
+            self.isPlaying = isPlaying
+            if isPlaying {
+                self.practiceTimer.start(at: .now)
+            } else {
+                self.practiceTimer.stop(at: .now)
+            }
         }
     }
 
@@ -98,6 +105,11 @@ final class PlayerViewModel {
 
     func pause() {
         engine.pause()
+    }
+
+    /// Hands over the practice time so far and starts counting afresh; nil if too short to keep.
+    func finishPractice() -> PracticeRecord? {
+        practiceTimer.finish(at: .now)
     }
 
     /// While looping, seeks are kept inside A-B so the loop can't be left by accident.
