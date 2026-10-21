@@ -28,9 +28,10 @@ struct RoomsScreen: View {
                             .padding(.vertical, 8)
                         roomList
                     }
-                    .background(Color(.systemGroupedBackground))
                 }
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Theme.background)
             .navigationTitle("我的练习室")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -38,6 +39,10 @@ struct RoomsScreen: View {
                         isCreating = true
                     } label: {
                         Image(systemName: "plus")
+                            .font(.body.weight(.bold))
+                            .foregroundStyle(Theme.onInk)
+                            .frame(width: 34, height: 34)
+                            .background(Circle().fill(Theme.ink))
                     }
                     .accessibilityLabel("创建练习室")
                 }
@@ -97,15 +102,12 @@ struct RoomsScreen: View {
 
                         moreMenu(for: room)
                     }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 16)
-                            .fill(Color(.secondarySystemGroupedBackground))
-                    )
+                    .cardStyle()
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.bottom, 8)
+            .padding(.top, 4)
+            .padding(.bottom, 16)
         }
     }
 
@@ -146,14 +148,23 @@ struct RoomsScreen: View {
     }
 
     private var emptyState: some View {
-        ContentUnavailableView {
-            Label("还没有练习室", systemImage: "figure.dance")
-        } description: {
-            Text("导入一个舞蹈视频，开始扒舞")
-        } actions: {
-            Button("创建练习室") { isCreating = true }
-                .buttonStyle(.borderedProminent)
+        VStack(spacing: 16) {
+            Image(systemName: "figure.dance")
+                .font(.system(size: 40))
+                .foregroundStyle(Theme.accent)
+                .frame(width: 96, height: 96)
+                .background(Circle().fill(Theme.surface))
+            VStack(spacing: 6) {
+                Text("还没有练习室")
+                    .font(.title3.weight(.bold))
+                Text("导入一个舞蹈视频，开始扒舞")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
+            PrimaryButton(title: "创建练习室", systemImage: "plus") { isCreating = true }
+                .padding(.top, 8)
         }
+        .padding(.horizontal, 40)
     }
 }
 

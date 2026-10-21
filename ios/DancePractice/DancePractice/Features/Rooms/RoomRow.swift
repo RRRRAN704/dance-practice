@@ -11,13 +11,13 @@ struct RoomRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            cover
-                .frame(width: 72, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            CoverImage(url: room.coverURL)
+                .frame(width: 76, height: 76)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(room.name)
-                    .font(.headline)
+                    .font(.system(.headline, weight: .bold))
                     .lineLimit(1)
                 if let subtitle {
                     Text(subtitle)
@@ -25,30 +25,12 @@ struct RoomRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                Text(practiceSummary)
+                Label(practiceSummary, systemImage: "clock")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                    .labelStyle(.titleAndIcon)
                     .lineLimit(1)
             }
-        }
-        .padding(.vertical, 4)
-    }
-
-    @ViewBuilder
-    private var cover: some View {
-        // Covers are small JPEGs, so reading one synchronously is fine.
-        if let url = room.coverURL, let image = UIImage(contentsOfFile: url.path()) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-        } else {
-            Rectangle()
-                .fill(.quaternary)
-                .overlay {
-                    Image(systemName: "figure.dance")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                }
         }
     }
 
