@@ -381,3 +381,77 @@ struct PracticeFormatTests {
         #expect(TimeFormat.lastPracticed(date(10, 2, 12, 0), now: now, calendar: calendar) == "10月2日")
     }
 }
+
+@MainActor
+struct PracticeStatsTests {
+    private var calendar: Calendar {
+        var base = Calendar(identifier: .gregorian)
+        base.timeZone = TimeZone(identifier: "Europe/London")!
+        return PracticeStats.calendar(base: base)
+    }
+
+    /// 2026-10-21 is a Wednesday.
+    private func date(_ day: Int, _ hour: Int = 12, month: Int = 10) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour))!
+    }
+
+    private func sessions(_ items: [(Date, TimeInterval)]) -> [PracticeSession] {
+        let room = PracticeRoom(name: "R", videoFileName: "r.mov")
+        return items.map { PracticeSession(startedAt: $0.0, duration: $0.1, room: room) }
+    }
+
+    @Test func todayAndWeekTotals() {
+        let all = sessions([
+            (date(21, 9), 600),   // today (Wed)
+            (date(21, 20), 300),  // today
+            (date(19), 1200),     // Monday, same week
+            (date(18), 900),      // Sunday, previous week
+        ])
+        let now = date(21, 22)
+        #expect(PracticeStats.today(all, now: now, calendar: calendar) == 900)
+        #expect(PracticeStats.thisWeek(all, now: now, calendar: calendar) == 2100)
+    }
+
+    @Test func weekStartsOnMonday() {
+        let days = PracticeStats.weekDays(now: date(21), calendar: calendar)
+        #expect(days.count == 7)
+        #expect(days.first == calendar.startOfDay(for: date(19)))
+        #expect(days.last == calendar.startOfDay(for: date(25)))
+    }
+
+    @Test func streakCountsBackFromToday() {
+        let days = PracticeStats.practicedDays([date(21), date(20), date(19), date(17)], calendar: calendar)
+        #expect(PracticeStats.currentStreak(days: days, now: date(21, 23), calendar: calendar) == 3)
+    }
+
+    @Test func streakSurvivesUntilTodayIsPracticed() {
+        let days = PracticeStats.practicedDays([date(20), date(19)], calendar: calendar)
+        #expect(PracticeStats.currentStreak(days: days, now: date(21, 8), calendar: calendar) == 2)
+    }
+
+    @Test func streakBreaksAfterAMissedDay() {
+        let days = PracticeStats.practicedDays([date(19), date(18)], calendar: calendar)
+        #expect(PracticeStats.currentStreak(days: days, now: date(21), calendar: calendar) == 0)
+    }
+
+    @Test func streakCrossesMonthBoundary() {
+        let days = PracticeStats.practicedDays([date(1, month: 11), date(31), date(30)], calendar: calendar)
+        #expect(PracticeStats.currentStreak(days: days, now: date(1, 20, month: 11), calendar: calendar) == 3)
+    }
+}
+
+struct HomeFormatTests {
+    @Test func durationPartsSplitValueAndUnit() {
+        #expect(TimeFormat.durationParts(0) == ("0", "分钟"))
+        #expect(TimeFormat.durationParts(2700) == ("45", "分钟"))
+        #expect(TimeFormat.durationParts(12600) == ("3.5", "小时"))
+    }
+
+    @Test func greetingByHour() {
+        #expect(HomeScreen.greeting(hour: 7) == "早上好")
+        #expect(HomeScreen.greeting(hour: 12) == "中午好")
+        #expect(HomeScreen.greeting(hour: 15) == "下午好")
+        #expect(HomeScreen.greeting(hour: 23) == "晚上好")
+        #expect(HomeScreen.greeting(hour: 2) == "晚上好")
+    }
+}

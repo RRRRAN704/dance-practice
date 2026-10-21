@@ -23,10 +23,17 @@ enum TimeFormat {
     static func practiceDuration(_ seconds: Double) -> String {
         let safe = max(0, seconds.isFinite ? seconds : 0)
         if safe < 60 { return "不到 1 分钟" }
-        if safe < 3600 { return "\(Int(safe / 60)) 分钟" }
+        let parts = durationParts(safe)
+        return "\(parts.value) \(parts.unit)"
+    }
+
+    /// Number and unit apart, for big-number stat tiles: ("45", "分钟"), ("3.5", "小时"), ("0", "分钟").
+    static func durationParts(_ seconds: Double) -> (value: String, unit: String) {
+        let safe = max(0, seconds.isFinite ? seconds : 0)
+        if safe < 3600 { return (String(Int(safe / 60)), "分钟") }
         let hours = (safe / 3600 * 10).rounded() / 10
         let text = hours == hours.rounded() ? String(Int(hours)) : String(format: "%.1f", hours)
-        return "\(text) 小时"
+        return (text, "小时")
     }
 
     /// "今天 20:12", "昨天 18:45", "3 天前", or "10月2日" beyond a week.
