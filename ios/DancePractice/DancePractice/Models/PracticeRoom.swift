@@ -58,6 +58,11 @@ final class PracticeRoom {
 
     var lastPracticedAt: Date? { sessions.map(\.startedAt).max() }
 
+    /// Latest of practising, opening or creating; orders Home's recent rooms.
+    var lastActivityAt: Date {
+        [lastPracticedAt, lastOpenedAt, createdAt].compactMap { $0 }.max() ?? createdAt
+    }
+
     /// Every file this room owns, for cleanup on delete.
     var fileNames: [String] { [videoFileName, coverFileName].compactMap { $0 } }
 }

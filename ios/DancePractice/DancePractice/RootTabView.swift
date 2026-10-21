@@ -11,12 +11,11 @@ struct RootTabView: View {
         case home, rooms, stats, profile
     }
 
-    // Starts on rooms while Home is still a placeholder.
-    @State private var selection: Tab = .rooms
+    @State private var selection: Tab = .home
 
     var body: some View {
         TabView(selection: $selection) {
-            TabPlaceholder(title: "首页", systemImage: "house")
+            HomeScreen { selection = .rooms }
                 .tabItem { Label("首页", systemImage: "house") }
                 .tag(Tab.home)
 
@@ -50,5 +49,5 @@ private struct TabPlaceholder: View {
 
 #Preview {
     RootTabView()
-        .modelContainer(for: PracticeRoom.self, inMemory: true)
+        .modelContainer(for: [PracticeRoom.self, PracticeSession.self], inMemory: true)
 }
