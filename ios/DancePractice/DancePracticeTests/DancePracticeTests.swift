@@ -6,6 +6,7 @@
 //
 
 import CoreGraphics
+import SwiftData
 import Testing
 import UIKit
 @testable import DancePractice
@@ -167,5 +168,71 @@ struct FullscreenRotationTests {
         #expect(!FullscreenRotation.isTracked(.faceDown))
         #expect(!FullscreenRotation.isTracked(.unknown))
         #expect(!FullscreenRotation.isTracked(.portraitUpsideDown))
+    }
+}
+
+@MainActor
+struct PracticeRoomTests {
+    private func makeContext() throws -> ModelContext {
+        let container = try ModelContainer(
+            for: PracticeRoom.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        return ModelContext(container)
+    }
+
+    @Test func insertAndFetch() throws {
+        let context = try makeContext()
+        context.insert(PracticeRoom(name: "Smoothie", videoFileName: "a.mov", artist: "NCT DREAM", genre: .kpop))
+        try context.save()
+
+        let rooms = try context.fetch(FetchDescriptor<PracticeRoom>())
+        #expect(rooms.count == 1)
+        #expect(rooms.first?.name == "Smoothie")
+        #expect(rooms.first?.genre == .kpop)
+    }
+
+    @Test func genreIsOptional() {
+        let room = PracticeRoom(name: "Untitled", videoFileName: "b.mov")
+        #expect(room.genre == nil)
+        room.genre = .jazz
+        #expect(room.genreRaw == "jazz")
+    }
+
+    @Test func unknownStoredGenreReadsAsNil() {
+        let room = PracticeRoom(name: "Old", videoFileName: "c.mov")
+        room.genreRaw = "breaking"
+        #expect(room.genre == nil)
+    }
+
+    @Test func videoURLIsRebuiltFromFileName() {
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "abc.mov")
+        #expect(room.videoURL.lastPathComponent == "abc.mov")
+        #expect(room.videoURL.deletingLastPathComponent().lastPathComponent == "Videos")
+    }
+
+    @Test func fileNamesIncludeCoverWhenPresent() {
+        #expect(PracticeRoom(name: "A", videoFileName: "a.mov").fileNames == ["a.mov"])
+        #expect(PracticeRoom(name: "B", videoFileName: "b.mov", coverFileName: "b.jpg").fileNames == ["b.mov", "b.jpg"])
+    }
+}
+
+struct RoomFilterTests {
+    private let rooms = [
+        PracticeRoom(name: "Smoothie", videoFileName: "a.mov", genre: .kpop),
+        PracticeRoom(name: "Jazz Walk", videoFileName: "b.mov", genre: .jazz),
+        PracticeRoom(name: "Untitled", videoFileName: "c.mov"),
+    ]
+
+    @Test func allKeepsEveryRoomInOrder() {
+        #expect(RoomFilter.rooms(rooms, genre: nil).map(\.name) == ["Smoothie", "Jazz Walk", "Untitled"])
+    }
+
+    @Test func genreKeepsOnlyMatches() {
+        #expect(RoomFilter.rooms(rooms, genre: .kpop).map(\.name) == ["Smoothie"])
+    }
+
+    @Test func roomsWithoutGenreOnlyShowUnderAll() {
+        #expect(RoomFilter.rooms(rooms, genre: .other).isEmpty)
     }
 }

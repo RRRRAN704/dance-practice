@@ -39,4 +39,16 @@ enum ThumbnailGenerator {
             onImage(index, image)
         }
     }
+
+    /// One frame for a room's cover, taken a little way in so it's rarely a black fade-in.
+    static func cover(url: URL, maximumSize: CGSize) async -> CGImage? {
+        let generator = AVAssetImageGenerator(asset: AVURLAsset(url: url))
+        generator.appliesPreferredTrackTransform = true
+        generator.maximumSize = maximumSize
+        let tolerance = CMTime(seconds: 1, preferredTimescale: 600)
+        generator.requestedTimeToleranceBefore = tolerance
+        generator.requestedTimeToleranceAfter = tolerance
+        // A video shorter than this still works: the generator clamps to its end.
+        return try? await generator.image(at: CMTime(seconds: 1, preferredTimescale: 600)).image
+    }
 }
