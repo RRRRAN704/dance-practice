@@ -38,7 +38,12 @@ struct PlayerScreen: View {
         }
         .background(Theme.playerBackground.ignoresSafeArea())
         .foregroundStyle(.white)
-        .preferredColorScheme(.dark)
+        // Dark for this screen only. `preferredColorScheme` would flip the whole window,
+        // and the screen behind would flash dark when popping back to it.
+        .environment(\.colorScheme, .dark)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackground(Theme.playerBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
