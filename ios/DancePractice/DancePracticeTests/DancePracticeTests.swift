@@ -517,3 +517,34 @@ struct StatsTabTests {
         #expect(shares.map(\.seconds) == [300, 150, 100])
     }
 }
+
+struct StorageUsageTests {
+    private let sizes: [String: Int64] = ["a.mov": 1_000, "a.jpg": 50, "b.mov": 2_000, "stray.mov": 300]
+
+    @Test func roomBytesAddItsFilesAndIgnoreMissingOnes() {
+        #expect(StorageUsage.bytes(of: ["a.mov", "a.jpg"], sizes: sizes) == 1_050)
+        #expect(StorageUsage.bytes(of: ["gone.mov"], sizes: sizes) == 0)
+    }
+
+    @Test func orphansAreFilesNoRoomReferences() {
+        let referenced: Set<String> = ["a.mov", "a.jpg", "b.mov"]
+        #expect(StorageUsage.orphans(sizes: sizes, referenced: referenced) == ["stray.mov"])
+        #expect(StorageUsage.orphans(sizes: sizes, referenced: Set(sizes.keys)).isEmpty)
+    }
+
+    @Test func zeroBytesStayNumeric() {
+        #expect(StorageUsage.format(0).hasPrefix("0"))
+    }
+}
+
+struct AppAppearanceTests {
+    @Test func mapsToInterfaceStyle() {
+        #expect(AppAppearance.system.interfaceStyle == .unspecified)
+        #expect(AppAppearance.light.interfaceStyle == .light)
+        #expect(AppAppearance.dark.interfaceStyle == .dark)
+    }
+
+    @Test func rawValuesStayStableForStoredSettings() {
+        #expect(AppAppearance.allCases.map(\.rawValue) == ["system", "light", "dark"])
+    }
+}
