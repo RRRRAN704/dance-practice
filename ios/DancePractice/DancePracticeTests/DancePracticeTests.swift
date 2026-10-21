@@ -210,4 +210,29 @@ struct PracticeRoomTests {
         #expect(room.videoURL.lastPathComponent == "abc.mov")
         #expect(room.videoURL.deletingLastPathComponent().lastPathComponent == "Videos")
     }
+
+    @Test func fileNamesIncludeCoverWhenPresent() {
+        #expect(PracticeRoom(name: "A", videoFileName: "a.mov").fileNames == ["a.mov"])
+        #expect(PracticeRoom(name: "B", videoFileName: "b.mov", coverFileName: "b.jpg").fileNames == ["b.mov", "b.jpg"])
+    }
+}
+
+struct RoomFilterTests {
+    private let rooms = [
+        PracticeRoom(name: "Smoothie", videoFileName: "a.mov", genre: .kpop),
+        PracticeRoom(name: "Jazz Walk", videoFileName: "b.mov", genre: .jazz),
+        PracticeRoom(name: "Untitled", videoFileName: "c.mov"),
+    ]
+
+    @Test func allKeepsEveryRoomInOrder() {
+        #expect(RoomFilter.rooms(rooms, genre: nil).map(\.name) == ["Smoothie", "Jazz Walk", "Untitled"])
+    }
+
+    @Test func genreKeepsOnlyMatches() {
+        #expect(RoomFilter.rooms(rooms, genre: .kpop).map(\.name) == ["Smoothie"])
+    }
+
+    @Test func roomsWithoutGenreOnlyShowUnderAll() {
+        #expect(RoomFilter.rooms(rooms, genre: .other).isEmpty)
+    }
 }

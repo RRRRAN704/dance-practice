@@ -11,14 +11,9 @@ struct RoomRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 10)
-                .fill(.quaternary)
+            cover
                 .frame(width: 72, height: 72)
-                .overlay {
-                    Image(systemName: "figure.dance")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                }
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(room.name)
@@ -33,6 +28,24 @@ struct RoomRow: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private var cover: some View {
+        // Covers are small JPEGs, so reading one synchronously is fine.
+        if let url = room.coverURL, let image = UIImage(contentsOfFile: url.path()) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Rectangle()
+                .fill(.quaternary)
+                .overlay {
+                    Image(systemName: "figure.dance")
+                        .font(.title2)
+                        .foregroundStyle(.secondary)
+                }
+        }
     }
 
     /// "Artist · Genre", skipping whichever is missing.

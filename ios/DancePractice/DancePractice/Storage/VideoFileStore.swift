@@ -3,7 +3,7 @@
 //  DancePractice
 //
 
-import Foundation
+import UIKit
 
 /// Owns the app's local copies of imported videos (Documents/Videos).
 enum VideoFileStore {
@@ -20,6 +20,16 @@ enum VideoFileStore {
     static func videosDirectory() throws -> URL {
         try FileManager.default.createDirectory(at: directoryURL, withIntermediateDirectories: true)
         return directoryURL
+    }
+
+    /// Saves a room cover as JPEG next to the videos; returns its file name.
+    static func saveCover(_ image: CGImage) throws -> String {
+        guard let data = UIImage(cgImage: image).jpegData(compressionQuality: 0.8) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        let fileName = UUID().uuidString + ".jpg"
+        try data.write(to: try videosDirectory().appending(path: fileName))
+        return fileName
     }
 
     /// Rebuilds the full path for a stored file name.

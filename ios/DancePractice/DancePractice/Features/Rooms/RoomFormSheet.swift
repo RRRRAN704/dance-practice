@@ -23,6 +23,8 @@ struct RoomFormSheet: View {
     @State private var selection: PhotosPickerItem?
     /// A video copied into the sandbox but not saved to a room yet.
     @State private var pendingVideoFileName: String?
+    /// Cover made from the pending video; follows its lifecycle.
+    @State private var pendingCoverFileName: String?
     @State private var isImporting = false
     @State private var errorMessage: String?
     @State private var didSave = false
@@ -89,8 +91,8 @@ struct RoomFormSheet: View {
             }
             .onDisappear {
                 // Cancelled or swiped away: drop the video nobody will reference.
-                if !didSave, let pendingVideoFileName {
-                    VideoFileStore.delete(fileName: pendingVideoFileName)
+                if !didSave {
+                    discardPendingFiles()
                 }
             }
         }
@@ -123,15 +125,17 @@ struct RoomFormSheet: View {
             room.genre = genre
             room.note = Self.nilIfBlank(note)
             if let pendingVideoFileName {
-                let oldFileName = room.videoFileName
+                let oldFileNames = room.fileNames
                 room.videoFileName = pendingVideoFileName
-                VideoFileStore.delete(fileName: oldFileName)
+                room.coverFileName = pendingCoverFileName
+                oldFileNames.forEach(VideoFileStore.delete(fileName:))
             }
         } else {
             guard let pendingVideoFileName else { return }
             modelContext.insert(PracticeRoom(
                 name: trimmedName,
                 videoFileName: pendingVideoFileName,
+                coverFileName: pendingCoverFileName,
                 artist: Self.nilIfBlank(artist),
                 genre: genre,
                 note: Self.nilIfBlank(note)
@@ -152,16 +156,31 @@ struct RoomFormSheet: View {
         do {
             if let imported = try await item.loadTransferable(type: ImportedVideo.self) {
                 // Picking again replaces the earlier copy.
-                if let pendingVideoFileName {
-                    VideoFileStore.delete(fileName: pendingVideoFileName)
-                }
+                discardPendingFiles()
                 pendingVideoFileName = imported.url.lastPathComponent
+                pendingCoverFileName = await makeCover(for: imported.url)
             } else {
                 errorMessage = "无法读取该视频"
             }
         } catch {
             errorMessage = "导入失败：\(error.localizedDescription)"
         }
+    }
+
+    /// A missing cover isn't worth failing the import over; the row shows a placeholder.
+    private func makeCover(for videoURL: URL) async -> String? {
+        guard let image = await ThumbnailGenerator.cover(url: videoURL, maximumSize: CGSize(width: 400, height: 400)) else {
+            return nil
+        }
+        return try? VideoFileStore.saveCover(image)
+    }
+
+    private func discardPendingFiles() {
+        [pendingVideoFileName, pendingCoverFileName]
+            .compactMap { $0 }
+            .forEach(VideoFileStore.delete(fileName:))
+        pendingVideoFileName = nil
+        pendingCoverFileName = nil
     }
 
     private static func nilIfBlank(_ text: String) -> String? {

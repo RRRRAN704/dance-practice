@@ -14,6 +14,8 @@ struct RoomsScreen: View {
     @State private var isCreating = false
     @State private var editingRoom: PracticeRoom?
     @State private var roomToDelete: PracticeRoom?
+    /// nil = 全部.
+    @State private var genreFilter: DanceGenre?
 
     var body: some View {
         NavigationStack {
@@ -21,7 +23,12 @@ struct RoomsScreen: View {
                 if rooms.isEmpty {
                     emptyState
                 } else {
-                    roomList
+                    VStack(spacing: 0) {
+                        GenreFilterBar(selection: $genreFilter)
+                            .padding(.vertical, 8)
+                        roomList
+                    }
+                    .background(Color(.systemGroupedBackground))
                 }
             }
             .navigationTitle("我的练习室")
@@ -59,10 +66,28 @@ struct RoomsScreen: View {
         }
     }
 
+    private var filteredRooms: [PracticeRoom] {
+        RoomFilter.rooms(rooms, genre: genreFilter)
+    }
+
+    @ViewBuilder
     private var roomList: some View {
+        if filteredRooms.isEmpty {
+            ContentUnavailableView(
+                "没有\(genreFilter?.displayName ?? "")练习室",
+                systemImage: "line.3.horizontal.decrease.circle",
+                description: Text("换个舞种看看，或者新建一个")
+            )
+            .frame(maxHeight: .infinity)
+        } else {
+            cardList
+        }
+    }
+
+    private var cardList: some View {
         ScrollView {
             LazyVStack(spacing: 12) {
-                ForEach(rooms) { room in
+                ForEach(filteredRooms) { room in
                     HStack(spacing: 0) {
                         // Only the left part navigates, so the menu never opens the player by accident.
                         NavigationLink(value: room) {
@@ -82,9 +107,8 @@ struct RoomsScreen: View {
                 }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 8)
+            .padding(.bottom, 8)
         }
-        .background(Color(.systemGroupedBackground))
     }
 
     private func moreMenu(for room: PracticeRoom) -> some View {
@@ -118,9 +142,9 @@ struct RoomsScreen: View {
     }
 
     private func delete(_ room: PracticeRoom) {
-        let fileName = room.videoFileName
+        let fileNames = room.fileNames
         modelContext.delete(room)
-        VideoFileStore.delete(fileName: fileName)
+        fileNames.forEach(VideoFileStore.delete(fileName:))
     }
 
     private var emptyState: some View {

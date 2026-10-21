@@ -17,6 +17,8 @@ final class PracticeRoom {
     var note: String?
     /// File name inside VideoFileStore, not a full path: the sandbox path changes between installs.
     var videoFileName: String
+    /// JPEG in VideoFileStore; nil if the frame couldn't be decoded.
+    var coverFileName: String?
     var createdAt: Date
     /// Drives "recent rooms" on Home.
     var lastOpenedAt: Date?
@@ -24,6 +26,7 @@ final class PracticeRoom {
     init(
         name: String,
         videoFileName: String,
+        coverFileName: String? = nil,
         artist: String? = nil,
         genre: DanceGenre? = nil,
         note: String? = nil,
@@ -32,6 +35,7 @@ final class PracticeRoom {
         self.id = UUID()
         self.name = name
         self.videoFileName = videoFileName
+        self.coverFileName = coverFileName
         self.artist = artist
         self.genreRaw = genre?.rawValue
         self.note = note
@@ -44,4 +48,9 @@ final class PracticeRoom {
     }
 
     var videoURL: URL { VideoFileStore.url(for: videoFileName) }
+
+    var coverURL: URL? { coverFileName.map(VideoFileStore.url(for:)) }
+
+    /// Every file this room owns, for cleanup on delete.
+    var fileNames: [String] { [videoFileName, coverFileName].compactMap { $0 } }
 }
