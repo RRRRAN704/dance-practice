@@ -12,12 +12,12 @@ struct RoomRow: View {
     var body: some View {
         HStack(spacing: 14) {
             CoverImage(url: room.coverURL)
-                .frame(width: 72, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .frame(width: 76, height: 76)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 5) {
                 Text(room.name)
-                    .font(.headline)
+                    .font(.system(.headline, weight: .bold))
                     .lineLimit(1)
                 if let subtitle {
                     Text(subtitle)
@@ -25,13 +25,13 @@ struct RoomRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                Text(practiceSummary)
+                Label(practiceSummary, systemImage: "clock")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
+                    .labelStyle(.titleAndIcon)
                     .lineLimit(1)
             }
         }
-        .padding(.vertical, 4)
     }
 
     /// "累计 1.5 小时 · 上次 今天 20:12"
