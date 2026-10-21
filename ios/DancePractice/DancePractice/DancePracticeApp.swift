@@ -12,10 +12,20 @@ import SwiftUI
 struct DancePracticeApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
 
+    private let container: ModelContainer = {
+        #if DEBUG
+        if SampleData.isRequested {
+            return SampleData.makeContainer()
+        }
+        #endif
+        // Same as `.modelContainer(for:)`, which also crashes if the store can't be opened.
+        return try! ModelContainer(for: PracticeRoom.self, PracticeSession.self)
+    }()
+
     var body: some Scene {
         WindowGroup {
             RootTabView()
         }
-        .modelContainer(for: [PracticeRoom.self, PracticeSession.self])
+        .modelContainer(container)
     }
 }

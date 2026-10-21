@@ -7,11 +7,23 @@ import SwiftUI
 
 /// The app's four tabs. Each tab owns its own NavigationStack.
 struct RootTabView: View {
-    enum Tab {
+    enum Tab: String {
         case home, rooms, stats, profile
     }
 
-    @State private var selection: Tab = .home
+    @State private var selection: Tab = Self.initialTab
+
+    /// Debug builds accept `-startTab stats` (etc.) so a screen can be opened directly for screenshots.
+    private static var initialTab: Tab {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        if let index = arguments.firstIndex(of: "-startTab"), index + 1 < arguments.count,
+           let tab = Tab(rawValue: arguments[index + 1]) {
+            return tab
+        }
+        #endif
+        return .home
+    }
 
     var body: some View {
         TabView(selection: $selection) {
@@ -23,7 +35,7 @@ struct RootTabView: View {
                 .tabItem { Label("练习室", systemImage: "rectangle.stack") }
                 .tag(Tab.rooms)
 
-            TabPlaceholder(title: "统计", systemImage: "chart.bar")
+            StatsScreen()
                 .tabItem { Label("统计", systemImage: "chart.bar") }
                 .tag(Tab.stats)
 
