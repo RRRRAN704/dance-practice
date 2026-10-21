@@ -7,32 +7,40 @@ import PhotosUI
 import SwiftData
 import SwiftUI
 
-/// Creates a practice room: pick a video, then fill in its details.
+/// Creates a practice room, or edits one when `room` is given.
 struct RoomFormSheet: View {
+    /// nil means creating a new room.
+    let room: PracticeRoom?
+
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
 
-    @State private var name = ""
-    @State private var artist = ""
+    @State private var name: String
+    @State private var artist: String
     @State private var genre: DanceGenre?
-    @State private var note = ""
+    @State private var note: String
 
     @State private var selection: PhotosPickerItem?
-    /// The video copied into the sandbox but not saved to a room yet.
-    @State private var videoFileName: String?
+    /// A video copied into the sandbox but not saved to a room yet.
+    @State private var pendingVideoFileName: String?
     @State private var isImporting = false
     @State private var errorMessage: String?
     @State private var didSave = false
+
+    init(room: PracticeRoom? = nil) {
+        self.room = room
+        _name = State(initialValue: room?.name ?? "")
+        _artist = State(initialValue: room?.artist ?? "")
+        _genre = State(initialValue: room?.genre)
+        _note = State(initialValue: room?.note ?? "")
+    }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section("视频") {
                     PhotosPicker(selection: $selection, matching: .videos) {
-                        Label(
-                            videoFileName == nil ? "从相册选择视频" : "已选择，点击更换",
-                            systemImage: videoFileName == nil ? "video.badge.plus" : "checkmark.circle.fill"
-                        )
+                        Label(videoPickerTitle, systemImage: videoPickerIcon)
                     }
                     .disabled(isImporting)
 
@@ -62,7 +70,7 @@ struct RoomFormSheet: View {
                         .lineLimit(3...6)
                 }
             }
-            .navigationTitle("创建练习室")
+            .navigationTitle(isEditing ? "编辑练习室" : "创建练习室")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -70,7 +78,7 @@ struct RoomFormSheet: View {
                         .disabled(isImporting)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("创建") { save() }
+                    Button(isEditing ? "保存" : "创建") { save() }
                         .disabled(!canSave)
                 }
             }
@@ -81,8 +89,8 @@ struct RoomFormSheet: View {
             }
             .onDisappear {
                 // Cancelled or swiped away: drop the video nobody will reference.
-                if !didSave, let videoFileName {
-                    VideoFileStore.delete(fileName: videoFileName)
+                if !didSave, let pendingVideoFileName {
+                    VideoFileStore.delete(fileName: pendingVideoFileName)
                 }
             }
         }
@@ -92,20 +100,43 @@ struct RoomFormSheet: View {
         name.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
+    private var isEditing: Bool { room != nil }
+
     private var canSave: Bool {
-        !trimmedName.isEmpty && videoFileName != nil && !isImporting
+        // An edited room already has a video; a new one needs one picked.
+        !trimmedName.isEmpty && (isEditing || pendingVideoFileName != nil) && !isImporting
+    }
+
+    private var videoPickerTitle: String {
+        if pendingVideoFileName != nil { return "已选择，点击更换" }
+        return isEditing ? "更换视频" : "从相册选择视频"
+    }
+
+    private var videoPickerIcon: String {
+        pendingVideoFileName != nil ? "checkmark.circle.fill" : "video.badge.plus"
     }
 
     private func save() {
-        guard let videoFileName else { return }
-        let room = PracticeRoom(
-            name: trimmedName,
-            videoFileName: videoFileName,
-            artist: Self.nilIfBlank(artist),
-            genre: genre,
-            note: Self.nilIfBlank(note)
-        )
-        modelContext.insert(room)
+        if let room {
+            room.name = trimmedName
+            room.artist = Self.nilIfBlank(artist)
+            room.genre = genre
+            room.note = Self.nilIfBlank(note)
+            if let pendingVideoFileName {
+                let oldFileName = room.videoFileName
+                room.videoFileName = pendingVideoFileName
+                VideoFileStore.delete(fileName: oldFileName)
+            }
+        } else {
+            guard let pendingVideoFileName else { return }
+            modelContext.insert(PracticeRoom(
+                name: trimmedName,
+                videoFileName: pendingVideoFileName,
+                artist: Self.nilIfBlank(artist),
+                genre: genre,
+                note: Self.nilIfBlank(note)
+            ))
+        }
         didSave = true
         dismiss()
     }
@@ -121,10 +152,10 @@ struct RoomFormSheet: View {
         do {
             if let imported = try await item.loadTransferable(type: ImportedVideo.self) {
                 // Picking again replaces the earlier copy.
-                if let videoFileName {
-                    VideoFileStore.delete(fileName: videoFileName)
+                if let pendingVideoFileName {
+                    VideoFileStore.delete(fileName: pendingVideoFileName)
                 }
-                videoFileName = imported.url.lastPathComponent
+                pendingVideoFileName = imported.url.lastPathComponent
             } else {
                 errorMessage = "无法读取该视频"
             }
