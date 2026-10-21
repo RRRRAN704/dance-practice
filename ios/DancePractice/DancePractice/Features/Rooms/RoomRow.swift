@@ -11,7 +11,7 @@ struct RoomRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            cover
+            CoverImage(url: room.coverURL)
                 .frame(width: 72, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: 10))
 
@@ -32,24 +32,6 @@ struct RoomRow: View {
             }
         }
         .padding(.vertical, 4)
-    }
-
-    @ViewBuilder
-    private var cover: some View {
-        // Covers are small JPEGs, so reading one synchronously is fine.
-        if let url = room.coverURL, let image = UIImage(contentsOfFile: url.path()) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-        } else {
-            Rectangle()
-                .fill(.quaternary)
-                .overlay {
-                    Image(systemName: "figure.dance")
-                        .font(.title2)
-                        .foregroundStyle(.secondary)
-                }
-        }
     }
 
     /// "累计 1.5 小时 · 上次 今天 20:12"

@@ -9,6 +9,8 @@ import SwiftUI
 struct SelectableChip: View {
     let title: String
     let isSelected: Bool
+    /// Stretch to the available width, for chips laid out in a grid.
+    var fillsWidth = false
     let action: () -> Void
 
     var body: some View {
@@ -16,6 +18,7 @@ struct SelectableChip: View {
             Text(title)
                 .font(.subheadline.weight(isSelected ? .semibold : .regular))
                 .lineLimit(1)
+                .frame(maxWidth: fillsWidth ? .infinity : nil)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
                 .foregroundStyle(isSelected ? Theme.onInk : Color.primary)
