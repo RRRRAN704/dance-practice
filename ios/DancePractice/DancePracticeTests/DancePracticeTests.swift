@@ -348,3 +348,36 @@ struct PracticeSessionTests {
         #expect(session.genre == .jazz)
     }
 }
+
+struct PracticeFormatTests {
+    static let durationCases: [(Double, String)] = [
+        (30, "不到 1 分钟"),
+        (2700, "45 分钟"),
+        (7200, "2 小时"),
+        (12600, "3.5 小时"),
+        (3659, "1 小时"),
+    ]
+
+    @Test(arguments: durationCases)
+    func practiceDuration(seconds: Double, expected: String) {
+        #expect(TimeFormat.practiceDuration(seconds) == expected)
+    }
+
+    private var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/London")!
+        return calendar
+    }
+
+    private func date(_ month: Int, _ day: Int, _ hour: Int, _ minute: Int) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour, minute: minute))!
+    }
+
+    @Test func lastPracticedRelativeDays() {
+        let now = date(10, 21, 9, 0)
+        #expect(TimeFormat.lastPracticed(date(10, 21, 8, 5), now: now, calendar: calendar) == "今天 08:05")
+        #expect(TimeFormat.lastPracticed(date(10, 20, 23, 50), now: now, calendar: calendar) == "昨天 23:50")
+        #expect(TimeFormat.lastPracticed(date(10, 18, 12, 0), now: now, calendar: calendar) == "3 天前")
+        #expect(TimeFormat.lastPracticed(date(10, 2, 12, 0), now: now, calendar: calendar) == "10月2日")
+    }
+}
