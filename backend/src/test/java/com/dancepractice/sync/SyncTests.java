@@ -5,13 +5,13 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.dancepractice.TestApi;
 import com.dancepractice.TestcontainersConfiguration;
 import com.dancepractice.room.RoomDto;
 import com.dancepractice.session.SessionDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,10 +36,12 @@ class SyncTests {
     @Autowired
     private ObjectMapper json;
 
+    private TestApi api;
     private String token;
 
     @BeforeEach
     void signUp() throws Exception {
+        api = new TestApi(mvc, json);
         token = registerUser();
     }
 
@@ -176,33 +178,19 @@ class SyncTests {
 
     private SyncResponse sync(String accessToken, long cursor, List<RoomDto> rooms, List<SessionDto> sessions)
             throws Exception {
-        String body = perform(accessToken, new SyncRequest(cursor, rooms, sessions))
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        return json.readValue(body, SyncResponse.class);
+        return api.sync(accessToken, cursor, rooms, sessions);
     }
 
     private ResultActions perform(String accessToken, SyncRequest request) throws Exception {
-        return mvc.perform(post("/api/sync")
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json.writeValueAsString(request)));
+        return api.postSync(accessToken, request);
     }
 
     private String registerUser() throws Exception {
-        String body = mvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(json.writeValueAsString(Map.of(
-                                "email", "dancer-" + UUID.randomUUID() + "@example.com",
-                                "password", "correct-horse"))))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsString();
-        return json.readTree(body).get("accessToken").asText();
+        return api.registerUser();
     }
 
     private static RoomDto room(String name, Instant at) {
-        return new RoomDto(UUID.randomUUID(), name, "IVE", "kpop", null, UUID.randomUUID() + ".mov", at, null, at,
-                null);
+        return TestApi.room(name, at);
     }
 
     private static RoomDto withName(RoomDto room, String name, Instant updatedAt) {
@@ -216,6 +204,6 @@ class SyncTests {
     }
 
     private static SessionDto session(RoomDto room, Instant startedAt) {
-        return new SessionDto(UUID.randomUUID(), room.id(), room.name(), room.genre(), startedAt, 95.5);
+        return TestApi.session(room, startedAt, 95.5);
     }
 }

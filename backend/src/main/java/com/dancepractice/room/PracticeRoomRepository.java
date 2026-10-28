@@ -7,6 +7,8 @@ import org.springframework.data.jpa.repository.Query;
 
 public interface PracticeRoomRepository extends JpaRepository<PracticeRoom, UUID> {
 
+    List<PracticeRoom> findByUserIdAndDeletedAtIsNullOrderByUpdatedAtDesc(UUID userId);
+
     /** Rooms changed after {@code cursor}, leaving out the ones written with {@code excludeSeq}. */
     @Query("""
             select r from PracticeRoom r
