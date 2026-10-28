@@ -1,0 +1,21 @@
+spring:
+  application:
+    name: dance-practice-api
+  datasource:
+    # Defaults match docker-compose.yml; override with env vars in other environments.
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/dance_practice}
+    username: ${DB_USERNAME:dance}
+    password: ${DB_PASSWORD:dance}
+  jpa:
+    # Flyway owns the schema; Hibernate only checks that entities match it.
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    locations: classpath:db/migration
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
