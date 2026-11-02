@@ -11,6 +11,7 @@ struct RootTabView: View {
         case home, rooms, stats, profile
     }
 
+    @Environment(AccountManager.self) private var accounts
     @State private var selection: Tab = Self.initialTab
     @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
 
@@ -44,6 +45,9 @@ struct RootTabView: View {
                 .tabItem { Label("我的", systemImage: "person") }
                 .tag(Tab.profile)
         }
+        // A new account means a new store: rebuild every tab so their queries and state start
+        // over. `selection` lives outside, so the user stays on the same tab.
+        .id(accounts.account?.id)
         .onAppear { appearance.apply() }
         .onChange(of: appearance) { appearance.apply() }
     }

@@ -77,6 +77,8 @@ struct ProfileScreen: View {
                 Button("退出登录", role: .destructive) {
                     Task { await accounts.logout() }
                 }
+            } message: {
+                Text("将切换回游客数据。账号的数据会保留在本机，下次登录可继续使用。")
             }
         }
     }

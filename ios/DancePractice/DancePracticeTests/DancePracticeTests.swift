@@ -622,3 +622,17 @@ struct AuthValidationTests {
                                             mode: .register) == "两次输入的密码不一致")
     }
 }
+
+@MainActor
+struct AccountStoresTests {
+    @Test func guestKeepsTheDefaultStore() {
+        #expect(AccountStores.storeURL(for: nil) == ModelConfiguration().url)
+    }
+
+    @Test func eachAccountGetsItsOwnFile() {
+        let a = UUID(), b = UUID()
+        #expect(AccountStores.storeURL(for: a) != AccountStores.storeURL(for: b))
+        #expect(AccountStores.storeURL(for: a) != AccountStores.storeURL(for: nil))
+        #expect(AccountStores.storeURL(for: a).lastPathComponent == "\(a.uuidString).store")
+    }
+}
