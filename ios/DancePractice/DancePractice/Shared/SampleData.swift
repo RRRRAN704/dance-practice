@@ -19,7 +19,7 @@ enum SampleData {
     @MainActor
     static func makeContainer() -> ModelContainer {
         let container = try! ModelContainer(
-            for: PracticeRoom.self, PracticeSession.self,
+            for: AccountStores.schema,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
         )
         seed(container.mainContext)

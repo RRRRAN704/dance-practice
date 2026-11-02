@@ -10,6 +10,7 @@ import SwiftUI
 struct RoomsScreen: View {
     @Query(sort: \PracticeRoom.createdAt, order: .reverse) private var rooms: [PracticeRoom]
     @Environment(\.modelContext) private var modelContext
+    @Environment(SyncService.self) private var sync: SyncService?
 
     @State private var isCreating = false
     @State private var editingRoom: PracticeRoom?
@@ -143,8 +144,11 @@ struct RoomsScreen: View {
 
     private func delete(_ room: PracticeRoom) {
         let fileNames = room.fileNames
+        // Recorded in guest stores too; it's a tiny row, and it keeps this screen account-agnostic.
+        modelContext.insert(DeletedRoom(room: room))
         modelContext.delete(room)
         fileNames.forEach(VideoFileStore.delete(fileName:))
+        sync?.requestSync()
     }
 
     private var emptyState: some View {
@@ -170,5 +174,5 @@ struct RoomsScreen: View {
 
 #Preview {
     RoomsScreen()
-        .modelContainer(for: PracticeRoom.self, inMemory: true)
+        .modelContainer(for: [PracticeRoom.self, DeletedRoom.self], inMemory: true)
 }

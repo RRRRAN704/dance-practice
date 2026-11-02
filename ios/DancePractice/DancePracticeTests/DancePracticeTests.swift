@@ -548,3 +548,255 @@ struct AppAppearanceTests {
         #expect(AppAppearance.allCases.map(\.rawValue) == ["system", "light", "dark"])
     }
 }
+
+struct StoredCredentialsTests {
+    private let now = Date(timeIntervalSince1970: 1_000_000)
+
+    private func credentials(expiringIn seconds: TimeInterval) -> StoredCredentials {
+        StoredCredentials(userId: UUID(), email: "a@b.com", accessToken: "old-access",
+                          refreshToken: "old-refresh", accessExpiresAt: now.addingTimeInterval(seconds))
+    }
+
+    @Test func freshTokenIsUsedAsIs() {
+        #expect(!credentials(expiringIn: 15 * 60).accessTokenNeedsRefresh(now: now))
+    }
+
+    @Test func refreshesInsideTheMargin() {
+        #expect(credentials(expiringIn: StoredCredentials.refreshMargin - 1).accessTokenNeedsRefresh(now: now))
+        #expect(credentials(expiringIn: -10).accessTokenNeedsRefresh(now: now))
+    }
+
+    @Test func replacingTokensKeepsTheAccount() throws {
+        let old = credentials(expiringIn: 0)
+        let response = try JSONDecoder().decode(TokenResponse.self, from: Data("""
+            {"accessToken":"new-access","refreshToken":"new-refresh","expiresIn":900,"tokenType":"Bearer"}
+            """.utf8))
+        let updated = old.replacingTokens(with: response, now: now)
+        #expect(updated.userId == old.userId)
+        #expect(updated.email == old.email)
+        #expect(updated.accessToken == "new-access")
+        #expect(updated.refreshToken == "new-refresh")
+        #expect(updated.accessExpiresAt == now.addingTimeInterval(900))
+    }
+}
+
+struct APIErrorTests {
+    @Test func unauthorizedIgnoresTheBody() {
+        #expect(APIError(status: 401, body: Data()) == .unauthorized)
+    }
+
+    @Test func readsProblemDetail() {
+        let body = Data(#"{"status":409,"detail":"This email is already registered"}"#.utf8)
+        #expect(APIError(status: 409, body: body) == .server(status: 409, message: "This email is already registered"))
+    }
+
+    @Test func prefersTheFieldMessage() {
+        let body = Data(#"{"detail":"Request validation failed","errors":{"email":"must be a well-formed email address"}}"#.utf8)
+        #expect(APIError(status: 400, body: body) == .server(status: 400, message: "must be a well-formed email address"))
+    }
+
+    @Test func survivesANonJSONBody() {
+        #expect(APIError(status: 502, body: Data("<html>".utf8)) == .server(status: 502, message: nil))
+    }
+}
+
+struct AuthValidationTests {
+    @Test(arguments: ["", "abc", "@b.com", "a@b", "a@@b.com"])
+    func rejectsBadEmails(email: String) {
+        #expect(AuthSheet.validationProblem(email: email, password: "12345678", mode: .login) != nil)
+    }
+
+    @Test func passwordRulesOnlyApplyWhenRegistering() {
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "short", mode: .login) == nil)
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "short", confirmation: "short",
+                                            mode: .register) != nil)
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "12345678", confirmation: "12345678",
+                                            mode: .register) == nil)
+        let long = String(repeating: "x", count: 73)
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: long, confirmation: long,
+                                            mode: .register) != nil)
+    }
+
+    @Test func registeringNeedsMatchingPasswords() {
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "12345678", confirmation: "12345679",
+                                            mode: .register) == "两次输入的密码不一致")
+    }
+}
+
+@MainActor
+struct AccountStoresTests {
+    @Test func guestKeepsTheDefaultStore() {
+        #expect(AccountStores.storeURL(for: nil) == ModelConfiguration().url)
+    }
+
+    @Test func eachAccountGetsItsOwnFile() {
+        let a = UUID(), b = UUID()
+        #expect(AccountStores.storeURL(for: a) != AccountStores.storeURL(for: b))
+        #expect(AccountStores.storeURL(for: a) != AccountStores.storeURL(for: nil))
+        #expect(AccountStores.storeURL(for: a).lastPathComponent == "\(a.uuidString).store")
+    }
+}
+
+struct APIDateTests {
+    @Test(arguments: [
+        ("2026-11-02T20:45:00Z", Int64(1_793_652_300_000)),
+        ("2026-11-02T20:45:00.123Z", Int64(1_793_652_300_123)),
+        ("2026-11-02T20:45:00.123456Z", Int64(1_793_652_300_123)),
+        ("2026-11-02T20:45:00.123789Z", Int64(1_793_652_300_124)),
+    ])
+    func readsJavaInstants(text: String, millis: Int64) throws {
+        let date = try #require(APIDate.date(from: text))
+        #expect(APIDate.millis(date) == millis)
+    }
+
+    @Test func rejectsNonUTC() {
+        #expect(APIDate.date(from: "2026-11-02T20:45:00+01:00") == nil)
+    }
+
+    @Test func roundTripsAtMillisecondPrecision() throws {
+        let date = Date(timeIntervalSince1970: 1_793_652_300.123_456)
+        let text = APIDate.string(from: date)
+        #expect(text == "2026-11-02T20:45:00.123Z")
+        #expect(try #require(APIDate.date(from: text)) == date.roundedToMilliseconds)
+    }
+}
+
+struct SyncMergerTests {
+    private let t0 = Date(timeIntervalSince1970: 1_000)
+    private let t1 = Date(timeIntervalSince1970: 2_000)
+
+    private func remote(updatedAt: Date, deleted: Bool = false) -> RoomDTO {
+        RoomDTO(id: UUID(), name: "Smoothie", videoFileName: "a.mov", createdAt: t0,
+                updatedAt: updatedAt, deletedAt: deleted ? updatedAt : nil)
+    }
+
+    @Test func newRoomsAreInserted() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t1), local: .none) == .insert)
+    }
+
+    @Test func unknownTombstonesAreIgnored() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t1, deleted: true), local: .none) == .skip)
+    }
+
+    @Test func tombstonesDeleteEvenNewerLocalEdits() {
+        let local = SyncMerger.Local.room(needsSync: true, updatedAt: t1)
+        #expect(SyncMerger.action(for: remote(updatedAt: t0, deleted: true), local: local) == .delete)
+    }
+
+    @Test func newerServerVersionWins() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t1), local: .room(needsSync: true, updatedAt: t0)) == .update)
+        #expect(SyncMerger.action(for: remote(updatedAt: t0), local: .room(needsSync: false, updatedAt: t1)) == .update)
+    }
+
+    @Test func newerUnpushedLocalEditIsKept() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t0), local: .room(needsSync: true, updatedAt: t1)) == .keepLocal)
+    }
+
+    @Test func aTieGoesToTheServer() {
+        // Matches the backend, where an equal updatedAt loses.
+        #expect(SyncMerger.action(for: remote(updatedAt: t1), local: .room(needsSync: true, updatedAt: t1)) == .update)
+    }
+
+    @Test func pendingLocalDeletesWaitForThePush() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t1), local: .pendingDelete) == .skip)
+    }
+
+    @Test func editsDuringThePushStayDirty() {
+        #expect(SyncMerger.isClean(afterPushing: t0, current: t0))
+        #expect(!SyncMerger.isClean(afterPushing: t0, current: t1))
+    }
+}
+
+struct SyncDTOTests {
+    @Test func encodesTheBackendsShape() throws {
+        let room = RoomDTO(id: UUID(uuidString: "6E4425E2-266E-4340-9ED2-84443D8CFF52")!, name: "Smoothie",
+                           videoFileName: "a.mov", createdAt: Date(timeIntervalSince1970: 1_793_652_300),
+                           updatedAt: Date(timeIntervalSince1970: 1_793_652_300.5))
+        let json = try #require(String(data: APIClient.encoder.encode(room), encoding: .utf8))
+        #expect(json.contains(#""updatedAt":"2026-11-02T20:45:00.500Z""#))
+        #expect(json.contains(#""id":"6E4425E2-266E-4340-9ED2-84443D8CFF52""#))
+        // Optionals left out read as null in Jackson.
+        #expect(!json.contains("deletedAt"))
+    }
+
+    @Test @MainActor func tombstoneCarriesTheWholeRoom() throws {
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "a.mov", artist: "NCT DREAM", genre: .kpop)
+        let now = Date(timeIntervalSince1970: 1_793_652_300.123_4)
+        let tombstone = try #require(DeletedRoom(room: room, now: now).room)
+        #expect(tombstone.id == room.id)
+        #expect(tombstone.name == "Smoothie")
+        #expect(tombstone.genre == "kpop")
+        #expect(tombstone.deletedAt == now.roundedToMilliseconds)
+        #expect(tombstone.updatedAt == now.roundedToMilliseconds)
+    }
+}
+
+@MainActor
+struct GuestImporterTests {
+    private func makeContext() throws -> ModelContext {
+        ModelContext(try ModelContainer(for: AccountStores.schema,
+                                        configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
+    }
+
+    @Test func importedIDsAreStablePerAccountAndDifferAcrossAccounts() {
+        let guestID = UUID(), a = UUID(), b = UUID()
+        #expect(GuestImporter.importedID(guestID, accountID: a) == GuestImporter.importedID(guestID, accountID: a))
+        #expect(GuestImporter.importedID(guestID, accountID: a) != GuestImporter.importedID(guestID, accountID: b))
+        #expect(GuestImporter.importedID(guestID, accountID: a) != guestID)
+    }
+
+    @Test func copiesRoomsAndSessionsWithTheirLinks() throws {
+        let guest = try makeContext(), account = try makeContext()
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "missing.mov", genre: .kpop)
+        guest.insert(room)
+        guest.insert(PracticeSession(startedAt: .now, duration: 600, room: room))
+        try guest.save()
+
+        let summary = try GuestImporter.importData(from: guest, into: account, accountID: UUID())
+
+        #expect(summary == GuestImporter.Summary(rooms: 1, sessions: 1))
+        let copy = try #require(try account.fetch(FetchDescriptor<PracticeRoom>()).first)
+        #expect(copy.name == "Smoothie")
+        #expect(copy.genre == .kpop)
+        #expect(copy.needsSync)
+        // Its own file name, never the guest's, so deleting one room can't take the other's video.
+        #expect(copy.videoFileName != room.videoFileName)
+        #expect(copy.sessions.count == 1)
+        #expect(try guest.fetchCount(FetchDescriptor<PracticeRoom>()) == 1)
+    }
+
+    @Test func importingAgainUpdatesInsteadOfDuplicating() throws {
+        let guest = try makeContext(), account = try makeContext()
+        let accountID = UUID()
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "missing.mov")
+        guest.insert(room)
+        try guest.save()
+        _ = try GuestImporter.importData(from: guest, into: account, accountID: accountID)
+
+        room.name = "Smoothie 副歌"
+        room.updatedAt = Date.now.addingTimeInterval(60).roundedToMilliseconds
+        guest.insert(PracticeSession(startedAt: .now, duration: 300, room: room))
+        try guest.save()
+        let second = try GuestImporter.importData(from: guest, into: account, accountID: accountID)
+
+        #expect(second == GuestImporter.Summary(rooms: 0, sessions: 1))
+        let rooms = try account.fetch(FetchDescriptor<PracticeRoom>())
+        #expect(rooms.count == 1)
+        #expect(rooms.first?.name == "Smoothie 副歌")
+    }
+
+    @Test func laterAccountEditsSurviveAReimport() throws {
+        let guest = try makeContext(), account = try makeContext()
+        let accountID = UUID()
+        guest.insert(PracticeRoom(name: "Smoothie", videoFileName: "missing.mov"))
+        try guest.save()
+        _ = try GuestImporter.importData(from: guest, into: account, accountID: accountID)
+
+        let copy = try #require(try account.fetch(FetchDescriptor<PracticeRoom>()).first)
+        copy.name = "Renamed in the account"
+        copy.updatedAt = Date.now.addingTimeInterval(60).roundedToMilliseconds
+        _ = try GuestImporter.importData(from: guest, into: account, accountID: accountID)
+
+        #expect(copy.name == "Renamed in the account")
+    }
+}
