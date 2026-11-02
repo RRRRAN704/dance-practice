@@ -78,6 +78,20 @@ final class AccountStores {
         return fileNames
     }
 
+    /// Removes an account's store and the videos its rooms own, after the account is deleted.
+    /// Call once the app has switched away from that store.
+    static func deleteLocalData(for accountID: UUID) {
+        let url = storeURL(for: accountID)
+        if let container = try? ModelContainer(for: schema, configurations: ModelConfiguration(url: url)),
+           let rooms = try? ModelContext(container).fetch(FetchDescriptor<PracticeRoom>()) {
+            rooms.flatMap(\.fileNames).forEach(VideoFileStore.delete(fileName:))
+        }
+        // SQLite's side files go too, or a later store with the same name would read stale pages.
+        for suffix in ["", "-shm", "-wal"] {
+            try? FileManager.default.removeItem(at: URL(filePath: url.path + suffix))
+        }
+    }
+
     private static var accountsDirectory: URL {
         URL.applicationSupportDirectory.appending(path: "Accounts", directoryHint: .isDirectory)
     }

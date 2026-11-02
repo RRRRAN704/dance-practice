@@ -102,6 +102,12 @@ final class SyncService {
         }
     }
 
+    /// Drops what this device remembers about an account's sync, after the account is deleted.
+    func forget(accountID: UUID) {
+        defaults.removeObject(forKey: Self.cursorKey(accountID))
+        defaults.removeObject(forKey: Self.lastSyncedKey(accountID))
+    }
+
     // MARK: One account
 
     private func sync(accountID: UUID) async throws {

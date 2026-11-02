@@ -13,10 +13,22 @@ struct RoomPlayerScreen: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(SyncService.self) private var sync: SyncService?
+    @State private var hasVideo: Bool
+
+    init(room: PracticeRoom) {
+        self.room = room
+        _hasVideo = State(initialValue: FileManager.default.fileExists(atPath: room.videoURL.path))
+    }
 
     var body: some View {
-        PlayerScreen(videoURL: room.videoURL, title: room.name) { record in
-            log(record)
+        Group {
+            if hasVideo {
+                PlayerScreen(videoURL: room.videoURL, title: room.name) { record in
+                    log(record)
+                }
+            } else {
+                MissingVideoView(room: room) { hasVideo = true }
+            }
         }
         .toolbar(.hidden, for: .tabBar)
         .onAppear { room.lastOpenedAt = .now }

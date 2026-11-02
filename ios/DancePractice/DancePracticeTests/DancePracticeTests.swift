@@ -730,3 +730,73 @@ struct SyncDTOTests {
         #expect(tombstone.updatedAt == now.roundedToMilliseconds)
     }
 }
+
+@MainActor
+struct GuestImporterTests {
+    private func makeContext() throws -> ModelContext {
+        ModelContext(try ModelContainer(for: AccountStores.schema,
+                                        configurations: ModelConfiguration(isStoredInMemoryOnly: true)))
+    }
+
+    @Test func importedIDsAreStablePerAccountAndDifferAcrossAccounts() {
+        let guestID = UUID(), a = UUID(), b = UUID()
+        #expect(GuestImporter.importedID(guestID, accountID: a) == GuestImporter.importedID(guestID, accountID: a))
+        #expect(GuestImporter.importedID(guestID, accountID: a) != GuestImporter.importedID(guestID, accountID: b))
+        #expect(GuestImporter.importedID(guestID, accountID: a) != guestID)
+    }
+
+    @Test func copiesRoomsAndSessionsWithTheirLinks() throws {
+        let guest = try makeContext(), account = try makeContext()
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "missing.mov", genre: .kpop)
+        guest.insert(room)
+        guest.insert(PracticeSession(startedAt: .now, duration: 600, room: room))
+        try guest.save()
+
+        let summary = try GuestImporter.importData(from: guest, into: account, accountID: UUID())
+
+        #expect(summary == GuestImporter.Summary(rooms: 1, sessions: 1))
+        let copy = try #require(try account.fetch(FetchDescriptor<PracticeRoom>()).first)
+        #expect(copy.name == "Smoothie")
+        #expect(copy.genre == .kpop)
+        #expect(copy.needsSync)
+        // Its own file name, never the guest's, so deleting one room can't take the other's video.
+        #expect(copy.videoFileName != room.videoFileName)
+        #expect(copy.sessions.count == 1)
+        #expect(try guest.fetchCount(FetchDescriptor<PracticeRoom>()) == 1)
+    }
+
+    @Test func importingAgainUpdatesInsteadOfDuplicating() throws {
+        let guest = try makeContext(), account = try makeContext()
+        let accountID = UUID()
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "missing.mov")
+        guest.insert(room)
+        try guest.save()
+        _ = try GuestImporter.importData(from: guest, into: account, accountID: accountID)
+
+        room.name = "Smoothie 副歌"
+        room.updatedAt = Date.now.addingTimeInterval(60).roundedToMilliseconds
+        guest.insert(PracticeSession(startedAt: .now, duration: 300, room: room))
+        try guest.save()
+        let second = try GuestImporter.importData(from: guest, into: account, accountID: accountID)
+
+        #expect(second == GuestImporter.Summary(rooms: 0, sessions: 1))
+        let rooms = try account.fetch(FetchDescriptor<PracticeRoom>())
+        #expect(rooms.count == 1)
+        #expect(rooms.first?.name == "Smoothie 副歌")
+    }
+
+    @Test func laterAccountEditsSurviveAReimport() throws {
+        let guest = try makeContext(), account = try makeContext()
+        let accountID = UUID()
+        guest.insert(PracticeRoom(name: "Smoothie", videoFileName: "missing.mov"))
+        try guest.save()
+        _ = try GuestImporter.importData(from: guest, into: account, accountID: accountID)
+
+        let copy = try #require(try account.fetch(FetchDescriptor<PracticeRoom>()).first)
+        copy.name = "Renamed in the account"
+        copy.updatedAt = Date.now.addingTimeInterval(60).roundedToMilliseconds
+        _ = try GuestImporter.importData(from: guest, into: account, accountID: accountID)
+
+        #expect(copy.name == "Renamed in the account")
+    }
+}

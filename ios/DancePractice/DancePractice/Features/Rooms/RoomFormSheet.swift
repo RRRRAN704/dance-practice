@@ -255,21 +255,13 @@ struct RoomFormSheet: View {
                 // Picking again replaces the earlier copy.
                 discardPendingFiles()
                 pendingVideoFileName = imported.url.lastPathComponent
-                pendingCoverFileName = await makeCover(for: imported.url)
+                pendingCoverFileName = await VideoFileStore.makeCover(for: imported.url)
             } else {
                 errorMessage = "无法读取该视频"
             }
         } catch {
             errorMessage = "导入失败：\(error.localizedDescription)"
         }
-    }
-
-    /// A missing cover isn't worth failing the import over; the row shows a placeholder.
-    private func makeCover(for videoURL: URL) async -> String? {
-        guard let image = await ThumbnailGenerator.cover(url: videoURL, maximumSize: CGSize(width: 400, height: 400)) else {
-            return nil
-        }
-        return try? VideoFileStore.saveCover(image)
     }
 
     private func discardPendingFiles() {

@@ -73,6 +73,13 @@ final class AccountManager {
         }
     }
 
+    /// Deletes the account and its cloud data on the server, then signs out. The server's cascade
+    /// already removed the refresh tokens, so there is nothing to log out of.
+    func deleteAccount() async throws {
+        try await send(.delete("/api/me"))
+        clearLocalAccount()
+    }
+
     /// Run at launch: signs out if the login was revoked or the account deleted elsewhere.
     /// Offline, the account stays signed in.
     func verifyAccount() async {
