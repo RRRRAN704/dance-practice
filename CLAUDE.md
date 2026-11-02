@@ -5,7 +5,7 @@ An iOS dance practice app designed for learning choreography from videos.
 
 ## Tech Stack
 - iOS: Swift / SwiftUI
-- Backend: Java 11 + Spring Boot
+- Backend: Java 21 + Spring Boot 3 (Maven, Flyway, Testcontainers)
 - Database: PostgreSQL
 - Cloud: AWS EC2 + S3
 
