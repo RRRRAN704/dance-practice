@@ -189,14 +189,14 @@ struct ProfileScreen: View {
         guestData = GuestImporter.guestSummary()
     }
 
-    /// Offers the import once per account, right after its first login on this device.
+    /// Offers the import once per device, after the first login that finds guest data. Guest data
+    /// is usually the phone owner's, so a friend signing in later shouldn't be nudged to take it;
+    /// the row above still imports by hand.
     private func offerImportOnce() {
-        guard let accountID = accounts.account?.id else { return }
-        let key = Self.importOfferedKey(accountID)
-        if !guestData.isEmpty && !UserDefaults.standard.bool(forKey: key) {
-            UserDefaults.standard.set(true, forKey: key)
-            confirmsImport = true
-        }
+        guard accounts.account != nil, !guestData.isEmpty,
+              !UserDefaults.standard.bool(forKey: Self.importOfferedKey) else { return }
+        UserDefaults.standard.set(true, forKey: Self.importOfferedKey)
+        confirmsImport = true
     }
 
     private func importGuestData() {
@@ -220,16 +220,13 @@ struct ProfileScreen: View {
                 // The tabs now switch to the guest store, so the account's store can go.
                 AccountStores.deleteLocalData(for: accountID)
                 sync.forget(accountID: accountID)
-                UserDefaults.standard.removeObject(forKey: Self.importOfferedKey(accountID))
             } catch {
                 notice = "删除失败：\(error.localizedDescription)"
             }
         }
     }
 
-    private static func importOfferedKey(_ accountID: UUID) -> String {
-        "guestImport.\(accountID.uuidString).offered"
-    }
+    private static let importOfferedKey = "guestImport.offered"
 
     private var syncStatusText: String {
         switch sync.status {
