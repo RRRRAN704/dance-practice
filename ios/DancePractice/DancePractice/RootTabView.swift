@@ -54,7 +54,9 @@ struct RootTabView: View {
 }
 
 #Preview {
+    let accounts = AccountManager()
     RootTabView()
-        .environment(AccountManager())
+        .environment(accounts)
+        .environment(SyncService(accounts: accounts, stores: AccountStores()))
         .modelContainer(for: [PracticeRoom.self, PracticeSession.self], inMemory: true)
 }

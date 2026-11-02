@@ -6,10 +6,11 @@
 import SwiftData
 import SwiftUI
 
-/// The 我的 tab. Login works; sync and guest import are still disabled until they are built.
+/// The 我的 tab: account, sync status and settings. Guest import is still disabled until it's built.
 struct ProfileScreen: View {
     @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
     @Environment(AccountManager.self) private var accounts
+    @Environment(SyncService.self) private var sync
     @State private var usedBytes: Int64?
     @State private var showsAuthSheet = false
     @State private var confirmsLogout = false
@@ -21,8 +22,7 @@ struct ProfileScreen: View {
                     accountCard
 
                     SettingsGroup(title: "账号与同步") {
-                        SettingsRow(title: "云同步", systemImage: "icloud", value: "即将上线")
-                            .disabled(true)
+                        syncRow
                         SettingsDivider()
                         SettingsRow(title: "导入游客数据", systemImage: "square.and.arrow.down", value: "即将上线")
                             .disabled(true)
@@ -116,6 +116,31 @@ struct ProfileScreen: View {
         .cardStyle(padding: 16)
     }
 
+    @ViewBuilder
+    private var syncRow: some View {
+        if accounts.account == nil {
+            SettingsRow(title: "云同步", systemImage: "icloud", value: "登录后可用")
+                .disabled(true)
+        } else {
+            // Tapping syncs now; a tap mid-sync just makes the running one go around again.
+            Button {
+                Task { await sync.syncNow() }
+            } label: {
+                SettingsRow(title: "云同步", systemImage: sync.status == .failed ? "exclamationmark.icloud" : "icloud",
+                            value: syncStatusText, showsChevron: false)
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    private var syncStatusText: String {
+        switch sync.status {
+        case .syncing: "同步中…"
+        case .failed: "同步失败，点此重试"
+        case .idle: sync.lastSyncedAt.map { "上次 " + TimeFormat.lastPracticed($0) } ?? "点此同步"
+        }
+    }
+
     private var appearanceMenu: some View {
         Menu {
             Picker("深色模式", selection: $appearance) {
@@ -131,7 +156,9 @@ struct ProfileScreen: View {
 }
 
 #Preview {
+    let accounts = AccountManager()
     ProfileScreen()
-        .environment(AccountManager())
+        .environment(accounts)
+        .environment(SyncService(accounts: accounts, stores: AccountStores()))
         .modelContainer(for: [PracticeRoom.self, PracticeSession.self], inMemory: true)
 }

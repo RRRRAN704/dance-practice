@@ -14,6 +14,9 @@ import SwiftData
 /// store's room, which is why cleanup has to look at every store.
 @MainActor
 final class AccountStores {
+    /// Every model in a store; guest and account stores share one schema.
+    static let schema = Schema([PracticeRoom.self, PracticeSession.self, DeletedRoom.self])
+
     private var current: (accountID: UUID?, container: ModelContainer)?
 
     /// The container for an account, or the guest store for nil. Reused while the account stays the same.
@@ -36,8 +39,7 @@ final class AccountStores {
             try? FileManager.default.createDirectory(at: accountsDirectory, withIntermediateDirectories: true)
         }
         // Crashes like `.modelContainer(for:)` does if the store can't be opened.
-        return try! ModelContainer(for: PracticeRoom.self, PracticeSession.self,
-                                   configurations: ModelConfiguration(url: storeURL(for: accountID)))
+        return try! ModelContainer(for: schema, configurations: ModelConfiguration(url: storeURL(for: accountID)))
     }
 
     /// nil is the guest store: SwiftData's default file, so data from before accounts existed is kept.
@@ -68,8 +70,7 @@ final class AccountStores {
         let urls = ([nil] + accountIDsOnDevice()).map(storeURL(for:))
         var fileNames = Set<String>()
         for url in urls where url != skipped && FileManager.default.fileExists(atPath: url.path) {
-            guard let container = try? ModelContainer(for: PracticeRoom.self, PracticeSession.self,
-                                                      configurations: ModelConfiguration(url: url)),
+            guard let container = try? ModelContainer(for: schema, configurations: ModelConfiguration(url: url)),
                   let rooms = try? ModelContext(container).fetch(FetchDescriptor<PracticeRoom>())
             else { return nil }
             fileNames.formUnion(rooms.flatMap(\.fileNames))

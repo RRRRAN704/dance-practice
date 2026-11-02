@@ -12,6 +12,7 @@ struct RoomPlayerScreen: View {
     let room: PracticeRoom
 
     @Environment(\.modelContext) private var modelContext
+    @Environment(SyncService.self) private var sync: SyncService?
 
     var body: some View {
         PlayerScreen(videoURL: room.videoURL, title: room.name) { record in
@@ -25,5 +26,6 @@ struct RoomPlayerScreen: View {
         modelContext.insert(PracticeSession(startedAt: record.startedAt, duration: record.duration, room: room))
         // Saved right away: this often runs as the app goes to the background, where it may be killed.
         try? modelContext.save()
+        sync?.requestSync()
     }
 }

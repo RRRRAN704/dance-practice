@@ -38,8 +38,17 @@ struct APIClient {
     static let defaultBaseURL = URL(string: "https://api.example.com")!
     #endif
 
-    static let encoder = JSONEncoder()
-    static let decoder = JSONDecoder()
+    static let encoder: JSONEncoder = {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = APIDate.encodingStrategy
+        return encoder
+    }()
+
+    static let decoder: JSONDecoder = {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = APIDate.decodingStrategy
+        return decoder
+    }()
 
     var baseURL = defaultBaseURL
     var session = URLSession.shared

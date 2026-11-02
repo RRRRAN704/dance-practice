@@ -14,6 +14,7 @@ struct RoomFormSheet: View {
 
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(SyncService.self) private var sync: SyncService?
 
     @State private var name: String
     @State private var artist: String
@@ -224,6 +225,7 @@ struct RoomFormSheet: View {
                 room.coverFileName = pendingCoverFileName
                 oldFileNames.forEach(VideoFileStore.delete(fileName:))
             }
+            room.markEdited()
         } else {
             guard let pendingVideoFileName else { return }
             modelContext.insert(PracticeRoom(
@@ -236,6 +238,7 @@ struct RoomFormSheet: View {
             ))
         }
         didSave = true
+        sync?.requestSync()
         dismiss()
     }
 

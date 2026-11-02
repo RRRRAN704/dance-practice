@@ -116,20 +116,26 @@ final class AccountManager {
 
     // MARK: Authorized requests
 
-    func send<Response: Decodable>(_ endpoint: Endpoint) async throws -> Response {
-        try await withAccessToken { [api] token in
+    /// - Parameter accountID: when given, the call fails with `AccountError.switchedAccount` unless
+    ///   that account is still the signed-in one, so work started for one account (a sync) can't
+    ///   go out with the next account's token.
+    func send<Response: Decodable>(_ endpoint: Endpoint, as accountID: UUID? = nil) async throws -> Response {
+        try await withAccessToken(for: accountID) { [api] token in
             try await api.send(endpoint, accessToken: token)
         }
     }
 
-    func send(_ endpoint: Endpoint) async throws {
-        try await withAccessToken { [api] token in
+    func send(_ endpoint: Endpoint, as accountID: UUID? = nil) async throws {
+        try await withAccessToken(for: accountID) { [api] token in
             try await api.send(endpoint, accessToken: token)
         }
     }
 
-    private func withAccessToken<T>(_ call: (String) async throws -> T) async throws -> T {
+    private func withAccessToken<T>(for accountID: UUID?, _ call: (String) async throws -> T) async throws -> T {
         guard let current = credentials else { throw APIError.unauthorized }
+        if let accountID, current.userId != accountID {
+            throw AccountError.switchedAccount
+        }
         let token = current.accessTokenNeedsRefresh(now: .now)
             ? try await refreshedCredentials().accessToken
             : current.accessToken
@@ -175,11 +181,14 @@ final class AccountManager {
 enum AccountError: LocalizedError {
     case wrongCredentials
     case emailTaken
+    /// Someone else signed in while work for the previous account was still running.
+    case switchedAccount
 
     var errorDescription: String? {
         switch self {
         case .wrongCredentials: "邮箱或密码错误"
         case .emailTaken: "该邮箱已注册，请直接登录"
+        case .switchedAccount: "账号已切换"
         }
     }
 }

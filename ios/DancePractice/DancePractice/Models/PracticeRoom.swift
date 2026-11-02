@@ -20,8 +20,14 @@ final class PracticeRoom {
     /// JPEG in VideoFileStore; nil if the frame couldn't be decoded.
     var coverFileName: String?
     var createdAt: Date
-    /// Drives "recent rooms" on Home.
+    /// Drives "recent rooms" on Home. Opening a room isn't an edit: it doesn't touch `updatedAt`,
+    /// so just looking at a room on one phone can't overwrite a rename made on another.
     var lastOpenedAt: Date?
+    /// Device time of the last edit, in whole milliseconds; the newer side wins a sync conflict.
+    /// The default only fills rows from before sync existed.
+    var updatedAt: Date = Date(timeIntervalSince1970: 0)
+    /// Edited since the last successful sync.
+    var needsSync: Bool = true
     /// Deleting the room keeps its sessions (they just lose the link).
     @Relationship(deleteRule: .nullify, inverse: \PracticeSession.room)
     var sessions: [PracticeSession] = []
@@ -43,6 +49,13 @@ final class PracticeRoom {
         self.genreRaw = genre?.rawValue
         self.note = note
         self.createdAt = createdAt
+        self.updatedAt = Date.now.roundedToMilliseconds
+    }
+
+    /// Call after changing the room's details, so the change is pushed on the next sync.
+    func markEdited() {
+        updatedAt = Date.now.roundedToMilliseconds
+        needsSync = true
     }
 
     var genre: DanceGenre? {
@@ -63,6 +76,7 @@ final class PracticeRoom {
         [lastPracticedAt, lastOpenedAt, createdAt].compactMap { $0 }.max() ?? createdAt
     }
 
-    /// Every file this room owns, for cleanup on delete.
+    /// Every file this room owns, for cleanup on delete. These names are this device's own:
+    /// sync never overwrites them, since another phone's files aren't here.
     var fileNames: [String] { [videoFileName, coverFileName].compactMap { $0 } }
 }

@@ -636,3 +636,97 @@ struct AccountStoresTests {
         #expect(AccountStores.storeURL(for: a).lastPathComponent == "\(a.uuidString).store")
     }
 }
+
+struct APIDateTests {
+    @Test(arguments: [
+        ("2026-11-02T20:45:00Z", Int64(1_793_652_300_000)),
+        ("2026-11-02T20:45:00.123Z", Int64(1_793_652_300_123)),
+        ("2026-11-02T20:45:00.123456Z", Int64(1_793_652_300_123)),
+        ("2026-11-02T20:45:00.123789Z", Int64(1_793_652_300_124)),
+    ])
+    func readsJavaInstants(text: String, millis: Int64) throws {
+        let date = try #require(APIDate.date(from: text))
+        #expect(APIDate.millis(date) == millis)
+    }
+
+    @Test func rejectsNonUTC() {
+        #expect(APIDate.date(from: "2026-11-02T20:45:00+01:00") == nil)
+    }
+
+    @Test func roundTripsAtMillisecondPrecision() throws {
+        let date = Date(timeIntervalSince1970: 1_793_652_300.123_456)
+        let text = APIDate.string(from: date)
+        #expect(text == "2026-11-02T20:45:00.123Z")
+        #expect(try #require(APIDate.date(from: text)) == date.roundedToMilliseconds)
+    }
+}
+
+struct SyncMergerTests {
+    private let t0 = Date(timeIntervalSince1970: 1_000)
+    private let t1 = Date(timeIntervalSince1970: 2_000)
+
+    private func remote(updatedAt: Date, deleted: Bool = false) -> RoomDTO {
+        RoomDTO(id: UUID(), name: "Smoothie", videoFileName: "a.mov", createdAt: t0,
+                updatedAt: updatedAt, deletedAt: deleted ? updatedAt : nil)
+    }
+
+    @Test func newRoomsAreInserted() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t1), local: .none) == .insert)
+    }
+
+    @Test func unknownTombstonesAreIgnored() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t1, deleted: true), local: .none) == .skip)
+    }
+
+    @Test func tombstonesDeleteEvenNewerLocalEdits() {
+        let local = SyncMerger.Local.room(needsSync: true, updatedAt: t1)
+        #expect(SyncMerger.action(for: remote(updatedAt: t0, deleted: true), local: local) == .delete)
+    }
+
+    @Test func newerServerVersionWins() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t1), local: .room(needsSync: true, updatedAt: t0)) == .update)
+        #expect(SyncMerger.action(for: remote(updatedAt: t0), local: .room(needsSync: false, updatedAt: t1)) == .update)
+    }
+
+    @Test func newerUnpushedLocalEditIsKept() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t0), local: .room(needsSync: true, updatedAt: t1)) == .keepLocal)
+    }
+
+    @Test func aTieGoesToTheServer() {
+        // Matches the backend, where an equal updatedAt loses.
+        #expect(SyncMerger.action(for: remote(updatedAt: t1), local: .room(needsSync: true, updatedAt: t1)) == .update)
+    }
+
+    @Test func pendingLocalDeletesWaitForThePush() {
+        #expect(SyncMerger.action(for: remote(updatedAt: t1), local: .pendingDelete) == .skip)
+    }
+
+    @Test func editsDuringThePushStayDirty() {
+        #expect(SyncMerger.isClean(afterPushing: t0, current: t0))
+        #expect(!SyncMerger.isClean(afterPushing: t0, current: t1))
+    }
+}
+
+struct SyncDTOTests {
+    @Test func encodesTheBackendsShape() throws {
+        let room = RoomDTO(id: UUID(uuidString: "6E4425E2-266E-4340-9ED2-84443D8CFF52")!, name: "Smoothie",
+                           videoFileName: "a.mov", createdAt: Date(timeIntervalSince1970: 1_793_652_300),
+                           updatedAt: Date(timeIntervalSince1970: 1_793_652_300.5))
+        let json = try #require(String(data: APIClient.encoder.encode(room), encoding: .utf8))
+        #expect(json.contains(#""updatedAt":"2026-11-02T20:45:00.500Z""#))
+        #expect(json.contains(#""id":"6E4425E2-266E-4340-9ED2-84443D8CFF52""#))
+        // Optionals left out read as null in Jackson.
+        #expect(!json.contains("deletedAt"))
+    }
+
+    @Test @MainActor func tombstoneCarriesTheWholeRoom() throws {
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "a.mov", artist: "NCT DREAM", genre: .kpop)
+        let now = Date(timeIntervalSince1970: 1_793_652_300.123_4)
+        let tombstone = try #require(DeletedRoom(room: room, now: now).room)
+        #expect(tombstone.id == room.id)
+        #expect(tombstone.name == "Smoothie")
+        #expect(tombstone.genre == "kpop")
+        #expect(tombstone.deletedAt == now.roundedToMilliseconds)
+        #expect(tombstone.updatedAt == now.roundedToMilliseconds)
+    }
+}
