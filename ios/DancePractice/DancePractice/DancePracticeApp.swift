@@ -11,6 +11,7 @@ import SwiftUI
 @main
 struct DancePracticeApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+    @State private var accounts = AccountManager()
 
     private let container: ModelContainer = {
         #if DEBUG
@@ -25,6 +26,8 @@ struct DancePracticeApp: App {
     var body: some Scene {
         WindowGroup {
             RootTabView()
+                .environment(accounts)
+                .task { await accounts.verifyAccount() }
         }
         .modelContainer(container)
     }

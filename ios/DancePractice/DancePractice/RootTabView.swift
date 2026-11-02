@@ -51,5 +51,6 @@ struct RootTabView: View {
 
 #Preview {
     RootTabView()
+        .environment(AccountManager())
         .modelContainer(for: [PracticeRoom.self, PracticeSession.self], inMemory: true)
 }

@@ -548,3 +548,69 @@ struct AppAppearanceTests {
         #expect(AppAppearance.allCases.map(\.rawValue) == ["system", "light", "dark"])
     }
 }
+
+struct StoredCredentialsTests {
+    private let now = Date(timeIntervalSince1970: 1_000_000)
+
+    private func credentials(expiringIn seconds: TimeInterval) -> StoredCredentials {
+        StoredCredentials(userId: UUID(), email: "a@b.com", accessToken: "old-access",
+                          refreshToken: "old-refresh", accessExpiresAt: now.addingTimeInterval(seconds))
+    }
+
+    @Test func freshTokenIsUsedAsIs() {
+        #expect(!credentials(expiringIn: 15 * 60).accessTokenNeedsRefresh(now: now))
+    }
+
+    @Test func refreshesInsideTheMargin() {
+        #expect(credentials(expiringIn: StoredCredentials.refreshMargin - 1).accessTokenNeedsRefresh(now: now))
+        #expect(credentials(expiringIn: -10).accessTokenNeedsRefresh(now: now))
+    }
+
+    @Test func replacingTokensKeepsTheAccount() throws {
+        let old = credentials(expiringIn: 0)
+        let response = try JSONDecoder().decode(TokenResponse.self, from: Data("""
+            {"accessToken":"new-access","refreshToken":"new-refresh","expiresIn":900,"tokenType":"Bearer"}
+            """.utf8))
+        let updated = old.replacingTokens(with: response, now: now)
+        #expect(updated.userId == old.userId)
+        #expect(updated.email == old.email)
+        #expect(updated.accessToken == "new-access")
+        #expect(updated.refreshToken == "new-refresh")
+        #expect(updated.accessExpiresAt == now.addingTimeInterval(900))
+    }
+}
+
+struct APIErrorTests {
+    @Test func unauthorizedIgnoresTheBody() {
+        #expect(APIError(status: 401, body: Data()) == .unauthorized)
+    }
+
+    @Test func readsProblemDetail() {
+        let body = Data(#"{"status":409,"detail":"This email is already registered"}"#.utf8)
+        #expect(APIError(status: 409, body: body) == .server(status: 409, message: "This email is already registered"))
+    }
+
+    @Test func prefersTheFieldMessage() {
+        let body = Data(#"{"detail":"Request validation failed","errors":{"email":"must be a well-formed email address"}}"#.utf8)
+        #expect(APIError(status: 400, body: body) == .server(status: 400, message: "must be a well-formed email address"))
+    }
+
+    @Test func survivesANonJSONBody() {
+        #expect(APIError(status: 502, body: Data("<html>".utf8)) == .server(status: 502, message: nil))
+    }
+}
+
+struct AuthValidationTests {
+    @Test(arguments: ["", "abc", "@b.com", "a@b", "a@@b.com"])
+    func rejectsBadEmails(email: String) {
+        #expect(AuthSheet.validationProblem(email: email, password: "12345678", mode: .login) != nil)
+    }
+
+    @Test func passwordLengthOnlyMattersWhenRegistering() {
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "short", mode: .login) == nil)
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "short", mode: .register) != nil)
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "12345678", mode: .register) == nil)
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: String(repeating: "x", count: 73),
+                                            mode: .register) != nil)
+    }
+}

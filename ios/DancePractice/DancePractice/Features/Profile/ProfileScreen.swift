@@ -6,16 +6,19 @@
 import SwiftData
 import SwiftUI
 
-/// The 我的 tab, guest version. Account features are listed but disabled until the backend exists.
+/// The 我的 tab. Login works; sync and guest import are still disabled until they are built.
 struct ProfileScreen: View {
     @AppStorage(AppAppearance.storageKey) private var appearance: AppAppearance = .system
+    @Environment(AccountManager.self) private var accounts
     @State private var usedBytes: Int64?
+    @State private var showsAuthSheet = false
+    @State private var confirmsLogout = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 22) {
-                    guestCard
+                    accountCard
 
                     SettingsGroup(title: "账号与同步") {
                         SettingsRow(title: "云同步", systemImage: "icloud", value: "即将上线")
@@ -23,6 +26,14 @@ struct ProfileScreen: View {
                         SettingsDivider()
                         SettingsRow(title: "导入游客数据", systemImage: "square.and.arrow.down", value: "即将上线")
                             .disabled(true)
+                        if accounts.account != nil {
+                            SettingsDivider()
+                            Button { confirmsLogout = true } label: {
+                                SettingsRow(title: "退出登录", systemImage: "rectangle.portrait.and.arrow.right",
+                                            showsChevron: false)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
 
                     SettingsGroup(title: "设置") {
@@ -59,10 +70,18 @@ struct ProfileScreen: View {
             .onAppear {
                 usedBytes = VideoFileStore.fileSizes().values.reduce(0, +)
             }
+            .sheet(isPresented: $showsAuthSheet) {
+                AuthSheet()
+            }
+            .confirmationDialog("确定退出登录吗？", isPresented: $confirmsLogout, titleVisibility: .visible) {
+                Button("退出登录", role: .destructive) {
+                    Task { await accounts.logout() }
+                }
+            }
         }
     }
 
-    private var guestCard: some View {
+    private var accountCard: some View {
         HStack(spacing: 16) {
             Image(systemName: "person.fill")
                 .font(.system(size: 30))
@@ -71,21 +90,26 @@ struct ProfileScreen: View {
                 .background(Circle().fill(Theme.fieldFill))
 
             VStack(alignment: .leading, spacing: 4) {
-                Text("游客")
+                Text(accounts.account?.email ?? "游客")
                     .font(.title3.weight(.bold))
-                Text("数据仅保存在本机")
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                Text(accounts.account == nil ? "数据仅保存在本机" : "已登录")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            Text("登录即将上线")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Capsule().fill(Theme.fieldFill))
+            if accounts.account == nil {
+                Button("登录 / 注册") { showsAuthSheet = true }
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Theme.onInk)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 7)
+                    .background(Capsule().fill(Theme.ink))
+                    .buttonStyle(.plain)
+            }
         }
         .cardStyle(padding: 16)
     }
@@ -106,5 +130,6 @@ struct ProfileScreen: View {
 
 #Preview {
     ProfileScreen()
+        .environment(AccountManager())
         .modelContainer(for: [PracticeRoom.self, PracticeSession.self], inMemory: true)
 }
