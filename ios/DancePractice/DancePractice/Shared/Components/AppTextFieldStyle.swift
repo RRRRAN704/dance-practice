@@ -9,18 +9,26 @@ import SwiftUI
 struct AppTextFieldStyle: TextFieldStyle {
     func _body(configuration: TextField<Self._Label>) -> some View {
         configuration
-            .padding(.horizontal, 14)
-            .padding(.vertical, 13)
-            .background(
-                RoundedRectangle(cornerRadius: Theme.fieldRadius)
-                    .fill(Theme.fieldFill)
-            )
+            .appFieldChrome()
     }
 }
 
 extension TextFieldStyle where Self == AppTextFieldStyle {
     /// Lets call sites write `.textFieldStyle(.app)`.
     static var app: AppTextFieldStyle { AppTextFieldStyle() }
+}
+
+extension View {
+    /// The padding and filled background of `.app` fields, for controls that wrap a field
+    /// with extra content (e.g. `PasswordField`'s eye button).
+    func appFieldChrome() -> some View {
+        padding(.horizontal, 14)
+            .padding(.vertical, 13)
+            .background(
+                RoundedRectangle(cornerRadius: Theme.fieldRadius)
+                    .fill(Theme.fieldFill)
+            )
+    }
 }
 
 #Preview {

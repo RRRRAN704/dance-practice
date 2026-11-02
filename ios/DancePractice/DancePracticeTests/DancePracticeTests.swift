@@ -606,11 +606,19 @@ struct AuthValidationTests {
         #expect(AuthSheet.validationProblem(email: email, password: "12345678", mode: .login) != nil)
     }
 
-    @Test func passwordLengthOnlyMattersWhenRegistering() {
+    @Test func passwordRulesOnlyApplyWhenRegistering() {
         #expect(AuthSheet.validationProblem(email: "a@b.com", password: "short", mode: .login) == nil)
-        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "short", mode: .register) != nil)
-        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "12345678", mode: .register) == nil)
-        #expect(AuthSheet.validationProblem(email: "a@b.com", password: String(repeating: "x", count: 73),
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "short", confirmation: "short",
                                             mode: .register) != nil)
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "12345678", confirmation: "12345678",
+                                            mode: .register) == nil)
+        let long = String(repeating: "x", count: 73)
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: long, confirmation: long,
+                                            mode: .register) != nil)
+    }
+
+    @Test func registeringNeedsMatchingPasswords() {
+        #expect(AuthSheet.validationProblem(email: "a@b.com", password: "12345678", confirmation: "12345679",
+                                            mode: .register) == "两次输入的密码不一致")
     }
 }

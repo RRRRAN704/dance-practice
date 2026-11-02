@@ -29,6 +29,7 @@ struct AuthSheet: View {
     @State private var mode: Mode = .login
     @State private var email = ""
     @State private var password = ""
+    @State private var confirmation = ""
     @State private var errorMessage: String?
     @State private var isSubmitting = false
 
@@ -59,10 +60,20 @@ struct AuthSheet: View {
                     }
 
                     LabeledField(title: "密码") {
-                        SecureField(mode == .register ? "至少 8 位" : "输入密码", text: $password)
-                            .textContentType(mode == .register ? .newPassword : .password)
-                            .textFieldStyle(.app)
+                        // The eye is login-only: when registering, the confirmation field catches typos.
+                        PasswordField(placeholder: mode == .register ? "至少 8 位" : "输入密码",
+                                      text: $password,
+                                      contentType: mode == .register ? .newPassword : .password,
+                                      allowsReveal: mode == .login)
                             .onSubmit(submit)
+                    }
+
+                    if mode == .register {
+                        LabeledField(title: "确认密码") {
+                            PasswordField(placeholder: "再输入一次密码", text: $confirmation,
+                                          contentType: .newPassword)
+                                .onSubmit(submit)
+                        }
                     }
 
                     if let errorMessage {
@@ -108,11 +119,13 @@ struct AuthSheet: View {
 
     private var canSubmit: Bool {
         !isSubmitting && !trimmedEmail.isEmpty && !password.isEmpty
+            && (mode == .login || !confirmation.isEmpty)
     }
 
     private func submit() {
         guard canSubmit else { return }
-        if let problem = Self.validationProblem(email: trimmedEmail, password: password, mode: mode) {
+        if let problem = Self.validationProblem(email: trimmedEmail, password: password,
+                                                     confirmation: confirmation, mode: mode) {
             errorMessage = problem
             return
         }
@@ -133,13 +146,17 @@ struct AuthSheet: View {
     }
 
     /// Checked before sending, so the common mistakes get a Chinese message without a round trip.
-    static func validationProblem(email: String, password: String, mode: Mode) -> String? {
+    static func validationProblem(email: String, password: String, confirmation: String = "",
+                                  mode: Mode) -> String? {
         let parts = email.split(separator: "@", omittingEmptySubsequences: false)
         if parts.count != 2 || parts[0].isEmpty || !parts[1].contains(".") {
             return "请输入有效的邮箱地址"
         }
         if mode == .register && !passwordLength.contains(password.count) {
             return "密码需要 \(passwordLength.lowerBound)–\(passwordLength.upperBound) 位"
+        }
+        if mode == .register && password != confirmation {
+            return "两次输入的密码不一致"
         }
         return nil
     }
