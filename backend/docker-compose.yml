@@ -1,4 +1,7 @@
-# Local development database. Port 5433 so it doesn't clash with a Homebrew Postgres on 5432.
+# Local development.
+#   docker compose up -d                  -> Postgres only (run the API from IntelliJ / ./mvnw)
+#   docker compose --profile full up -d   -> Postgres + the API in a container, no Java needed
+# Postgres is on host port 5433 so it doesn't clash with a Homebrew Postgres on 5432.
 services:
   postgres:
     image: postgres:16-alpine
@@ -15,6 +18,20 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  backend:
+    profiles: ["full"]
+    build: .
+    environment:
+      # Inside the compose network, Postgres is reached by its service name on its own port.
+      DB_URL: jdbc:postgresql://postgres:5432/dance_practice
+      DB_USERNAME: dance
+      DB_PASSWORD: dance
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   pgdata:
