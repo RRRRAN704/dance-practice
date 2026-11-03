@@ -1,0 +1,64 @@
+# Production stack on the EC2 host: Caddy (HTTPS) -> Spring Boot API -> Postgres.
+# Only Caddy publishes ports; the API and the database are reachable only inside this compose network.
+# Secrets come from a .env file next to this one on the server (see .env.example); it is never committed.
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dance_practice
+      POSTGRES_USER: dance
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dance -d dance_practice"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    logging: *logging
+
+  backend:
+    image: ${BACKEND_IMAGE:-ghcr.io/rrrran704/dance-practice-api}:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/dance_practice
+      DB_USERNAME: dance
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      # Trust X-Forwarded-* from Caddy so generated URLs (e.g. Swagger) use https.
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+    mem_limit: 768m
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging: *logging
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN in .env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data      # TLS certificates; keep them so restarts don't hit Let's Encrypt rate limits
+      - caddy_config:/config
+    depends_on:
+      - backend
+    logging: *logging
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

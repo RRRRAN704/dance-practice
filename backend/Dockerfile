@@ -2,7 +2,9 @@
 # Used by `docker compose --profile full` locally and by the production deploy.
 
 # ---- Build stage ----
-FROM eclipse-temurin:21-jdk AS build
+# A jar runs on any CPU, so compile on the builder's native platform (no emulation, much faster)
+# even when the final image targets another architecture (e.g. an x86 server from an ARM Mac).
+FROM --platform=$BUILDPLATFORM eclipse-temurin:21-jdk AS build
 WORKDIR /app
 
 # Download dependencies first, in their own layer, so editing code doesn't re-download them.
