@@ -31,11 +31,17 @@ struct Endpoint {
 
 /// Thin wrapper over URLSession: builds the request, checks the status, decodes the JSON.
 struct APIClient {
+    /// The deployed backend (EC2 behind Caddy); see backend/deploy.
+    static let productionBaseURL = URL(string: "https://dance-api.flowbiterp.site")!
+
     #if DEBUG
-    /// The simulator reaches the Mac's localhost directly; see backend/README.md.
-    static let defaultBaseURL = URL(string: "http://localhost:8080")!
+    /// Debug builds use the Mac's local backend (the simulator reaches localhost directly; see backend/README.md).
+    /// Launch with `-productionAPI` to test against the live server instead.
+    static let defaultBaseURL = ProcessInfo.processInfo.arguments.contains("-productionAPI")
+        ? productionBaseURL
+        : URL(string: "http://localhost:8080")!
     #else
-    static let defaultBaseURL = URL(string: "https://api.example.com")!
+    static let defaultBaseURL = productionBaseURL
     #endif
 
     static let encoder: JSONEncoder = {
