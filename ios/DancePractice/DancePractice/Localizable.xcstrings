@@ -1,6 +1,15 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "*" : {
+      "shouldTranslate" : false
+    },
+    "/ %@" : {
+      "shouldTranslate" : false
+    },
+    "%@ 👋" : {
+      "shouldTranslate" : false
+    },
     "%@ of files don't belong to any room and can be safely removed." : {
       "localizations" : {
         "zh-Hans" : {
@@ -10,9 +19,6 @@
           }
         }
       }
-    },
-    "%@ 👋" : {
-      "shouldTranslate" : false
     },
     "%@, practiced" : {
       "localizations" : {
@@ -26,12 +32,6 @@
     },
     "%lld days ago" : {
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 天前"
-          }
-        },
         "en" : {
           "variations" : {
             "plural" : {
@@ -49,17 +49,17 @@
               }
             }
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 天前"
+          }
         }
       }
     },
     "%lld rooms" : {
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 个练习室"
-          }
-        },
         "en" : {
           "variations" : {
             "plural" : {
@@ -77,21 +77,11 @@
               }
             }
           }
-        }
-      }
-    },
-    "*" : {
-      "shouldTranslate" : false
-    },
-    "/ %@" : {
-      "shouldTranslate" : false
-    },
-    "30 Days" : {
-      "localizations" : {
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "近 30 天"
+            "value" : "%lld 个练习室"
           }
         }
       }
@@ -102,6 +92,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "近 7 天"
+          }
+        }
+      }
+    },
+    "30 Days" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "近 30 天"
           }
         }
       }
@@ -461,6 +461,7 @@
       }
     },
     "day" : {
+      "comment" : "Unit after the number 1",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -471,6 +472,7 @@
       }
     },
     "days" : {
+      "comment" : "Unit after a number of days other than 1",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -486,6 +488,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "删除"
+          }
+        }
+      }
+    },
+    "Delete “%@”?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除「%@」？"
           }
         }
       }
@@ -526,16 +538,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确定删除账号吗？"
-          }
-        }
-      }
-    },
-    "Delete “%@”?" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除「%@」？"
           }
         }
       }
@@ -681,70 +683,66 @@
       }
     },
     "greeting.afternoon" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "下午好"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Good afternoon"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下午好"
+          }
         }
       }
     },
     "greeting.evening" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "晚上好"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Good evening"
           }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "晚上好"
+          }
         }
       }
     },
     "greeting.morning" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "早上好"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Good morning"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "早上好"
           }
         }
       }
     },
     "greeting.noon" : {
       "comment" : "Greeting from 11:00 to 13:00. English has no noon greeting; Chinese uses 中午好.",
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中午好"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Good afternoon"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中午好"
           }
         }
       }
@@ -770,6 +768,7 @@
       }
     },
     "h" : {
+      "comment" : "Unit after a number of hours",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -863,14 +862,7 @@
       }
     },
     "Imported %lld rooms and %lld practice sessions" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "已导入 %1$lld 个练习室、%2$lld 条练习记录"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
@@ -917,6 +909,12 @@
                 }
               }
             }
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已导入 %1$lld 个练习室、%2$lld 条练习记录"
           }
         }
       }
@@ -1029,6 +1027,7 @@
       }
     },
     "min" : {
+      "comment" : "Unit after a number of minutes",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -1222,18 +1221,17 @@
       }
     },
     "Password must be %lld–%lld characters" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "密码需要 %1$lld–%2$lld 位"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Password must be %1$lld–%2$lld characters"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "密码需要 %1$lld–%2$lld 位"
           }
         }
       }
@@ -1719,14 +1717,7 @@
       }
     },
     "This device has %lld guest rooms and %lld practice sessions. Import them into this account to sync them to the cloud. Guest data is kept, and importing again only updates — it never duplicates." : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "本机有 %1$lld 个游客练习室、%2$lld 条练习记录，可以导入当前账号并同步到云端。游客数据会保留；以后再导入只会更新，不会重复。"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1773,6 +1764,12 @@
                 }
               }
             }
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本机有 %1$lld 个游客练习室、%2$lld 条练习记录，可以导入当前账号并同步到云端。游客数据会保留；以后再导入只会更新，不会重复。"
           }
         }
       }
@@ -1861,18 +1858,17 @@
     },
     "Total %@ · Last %@" : {
       "comment" : "Room card: total practice time · last practised",
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "累计 %1$@ · 上次 %2$@"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Total %1$@ · Last %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "累计 %1$@ · 上次 %2$@"
           }
         }
       }
@@ -1941,18 +1937,17 @@
       }
     },
     "Version %@ (%@)" : {
-      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "版本 %1$@ (%2$@)"
-          }
-        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Version %1$@ (%2$@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "版本 %1$@ (%2$@)"
           }
         }
       }
@@ -1969,12 +1964,6 @@
     },
     "Videos and covers for %lld rooms" : {
       "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 个练习室的视频和封面"
-          }
-        },
         "en" : {
           "variations" : {
             "plural" : {
@@ -1991,6 +1980,12 @@
                 }
               }
             }
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 个练习室的视频和封面"
           }
         }
       }
