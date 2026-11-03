@@ -50,7 +50,7 @@ struct MirrorButton: View {
 
     var body: some View {
         ControlButton(
-            title: "镜面",
+            title: "Mirror",
             systemImage: "arrow.left.and.right.righttriangle.left.righttriangle.right",
             isActive: viewModel.isMirrored,
             showsTitle: showsTitle,
@@ -65,7 +65,7 @@ struct LoopButton: View {
 
     var body: some View {
         ControlButton(
-            title: "A-B 循环",
+            title: "A-B Loop",
             systemImage: "repeat",
             isActive: viewModel.isLoopEnabled,
             showsTitle: showsTitle,
@@ -79,7 +79,7 @@ struct MetronomeButton: View {
     var showsTitle = true
 
     var body: some View {
-        ControlButton(title: "节拍", systemImage: "music.note", showsTitle: showsTitle) {}
+        ControlButton(title: "Metronome", systemImage: "music.note", showsTitle: showsTitle) {}
             .disabled(true)
     }
 }
@@ -98,14 +98,14 @@ struct SegmentListButton: View {
         .buttonStyle(.plain)
         .disabled(true)
         .opacity(0.4)
-        .accessibilityLabel("片段列表")
+        .accessibilityLabel("Segment List")
     }
 }
 
 /// Round translucent icon button used over fullscreen video.
 struct OverlayIconButton: View {
     let systemImage: String
-    let accessibilityLabel: String
+    let accessibilityLabel: LocalizedStringResource
     var isActive = false
     let action: () -> Void
 
@@ -121,6 +121,6 @@ struct OverlayIconButton: View {
         }
         .buttonStyle(.plain)
         .opacity(isEnabled ? 1 : 0.5)
-        .accessibilityLabel(accessibilityLabel)
+        .accessibilityLabel(Text(accessibilityLabel))
     }
 }

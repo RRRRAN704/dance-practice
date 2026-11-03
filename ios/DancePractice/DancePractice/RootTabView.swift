@@ -30,19 +30,19 @@ struct RootTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             HomeScreen { selection = .rooms }
-                .tabItem { Label("首页", systemImage: "house") }
+                .tabItem { Label("Home", systemImage: "house") }
                 .tag(Tab.home)
 
             RoomsScreen()
-                .tabItem { Label("练习室", systemImage: "rectangle.stack") }
+                .tabItem { Label("Rooms", systemImage: "rectangle.stack") }
                 .tag(Tab.rooms)
 
             StatsScreen()
-                .tabItem { Label("统计", systemImage: "chart.bar") }
+                .tabItem { Label("Stats", systemImage: "chart.bar") }
                 .tag(Tab.stats)
 
             ProfileScreen()
-                .tabItem { Label("我的", systemImage: "person") }
+                .tabItem { Label("Profile", systemImage: "person") }
                 .tag(Tab.profile)
         }
         // A new account means a new store: rebuild every tab so their queries and state start

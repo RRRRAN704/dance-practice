@@ -7,7 +7,7 @@ import SwiftUI
 
 /// Full-width ink capsule for the main action on a screen.
 struct PrimaryButton: View {
-    let title: String
+    let title: LocalizedStringResource
     var systemImage: String?
     let action: () -> Void
 
@@ -21,7 +21,7 @@ struct PrimaryButton: View {
 
 /// PrimaryButton's look on its own, for controls that aren't a Button, like a PhotosPicker.
 struct PrimaryButtonLabel: View {
-    let title: String
+    let title: LocalizedStringResource
     var systemImage: String?
 
     @Environment(\.isEnabled) private var isEnabled
@@ -44,9 +44,9 @@ struct PrimaryButtonLabel: View {
 
 #Preview {
     VStack(spacing: 16) {
-        PrimaryButton(title: "创建练习室") {}
-        PrimaryButton(title: "创建练习室", systemImage: "plus") {}
-        PrimaryButton(title: "保存修改") {}
+        PrimaryButton(title: "Create Room") {}
+        PrimaryButton(title: "Create Room", systemImage: "plus") {}
+        PrimaryButton(title: "Save Changes") {}
             .disabled(true)
     }
     .padding()

@@ -15,12 +15,12 @@ enum ChartPalette {
         case .hiphop: dynamic(light: 0x1BAF7A, dark: 0x199E70)  // aqua
         case .urban: dynamic(light: 0xEDA100, dark: 0xC98500)   // yellow
         case .other: dynamic(light: 0xE87BA4, dark: 0xD55181)   // magenta
-        case nil: Color(.systemGray3)                           // 未分类 stays neutral
+        case nil: Color(.systemGray3)                           // uncategorised stays neutral
         }
     }
 
     static func genreName(_ genre: DanceGenre?) -> String {
-        genre?.displayName ?? "未分类"
+        genre.map { String(localized: $0.displayName) } ?? String(localized: "Uncategorized")
     }
 
     /// Single-series bars.

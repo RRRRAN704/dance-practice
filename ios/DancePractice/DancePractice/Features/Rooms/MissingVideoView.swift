@@ -26,16 +26,16 @@ struct MissingVideoView: View {
                 .background(Circle().fill(Theme.surface))
 
             VStack(spacing: 8) {
-                Text("视频不在本机")
+                Text("Video Not on This Device")
                     .font(.title3.weight(.bold))
-                Text("练习室和练习记录会同步，但视频文件只保存在导入它的设备上。从相册选择同一个视频，就可以在这台设备上练习。")
+                Text("Rooms and practice history sync, but a video stays on the device that imported it. Choose the same video from your photo library to practise on this device.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
             PhotosPicker(selection: $selection, matching: .videos) {
-                PrimaryButtonLabel(title: isImporting ? "导入中…" : "重新选择视频", systemImage: "photo.on.rectangle")
+                PrimaryButtonLabel(title: isImporting ? "Importing…" : "Choose Video Again", systemImage: "photo.on.rectangle")
             }
             .buttonStyle(.plain)
             .disabled(isImporting)
@@ -67,7 +67,7 @@ struct MissingVideoView: View {
         }
         do {
             guard let imported = try await item.loadTransferable(type: ImportedVideo.self) else {
-                errorMessage = "无法读取该视频"
+                errorMessage = String(localized: "Couldn't read this video")
                 return
             }
             let oldCover = room.coverFileName
@@ -78,7 +78,7 @@ struct MissingVideoView: View {
             try? modelContext.save()
             onRelinked()
         } catch {
-            errorMessage = "导入失败：\(error.localizedDescription)"
+            errorMessage = String(localized: "Import failed: \(error.localizedDescription)")
         }
     }
 }

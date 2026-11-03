@@ -86,14 +86,14 @@ struct PlayerScreen: View {
             }
         }
         .alert(
-            "出错了",
+            "Something went wrong",
             isPresented: Binding(
                 get: { viewModel.errorMessage != nil },
                 set: { if !$0 { viewModel.dismissError() } }
             ),
             presenting: viewModel.errorMessage
         ) { _ in
-            Button("好") {}
+            Button("OK") {}
         } message: { message in
             Text(message)
         }
@@ -113,7 +113,7 @@ struct PlayerScreen: View {
                     }
                     .buttonStyle(.plain)
                     .padding(10)
-                    .accessibilityLabel("全屏")
+                    .accessibilityLabel("Fullscreen")
                 }
 
             VStack(spacing: 14) {
@@ -236,7 +236,7 @@ struct PlayerScreen: View {
 
     private func togglePin() {
         keepControlsVisible.toggle()
-        showToast(keepControlsVisible ? "控件已固定" : "已取消固定")
+        showToast(keepControlsVisible ? String(localized: "Controls pinned") : String(localized: "Controls unpinned"))
         scheduleAutoHide()
     }
 

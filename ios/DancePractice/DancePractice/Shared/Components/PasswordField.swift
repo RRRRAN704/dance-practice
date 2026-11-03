@@ -7,7 +7,7 @@ import SwiftUI
 
 /// A secure field in the app's style, optionally with an eye button that shows what was typed.
 struct PasswordField: View {
-    let placeholder: String
+    let placeholder: LocalizedStringResource
     @Binding var text: String
     var contentType: UITextContentType = .password
     var allowsReveal = false
@@ -18,11 +18,11 @@ struct PasswordField: View {
         HStack(spacing: 10) {
             Group {
                 if isRevealed {
-                    TextField(placeholder, text: $text)
+                    TextField(text: $text) { Text(placeholder) }
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                 } else {
-                    SecureField(placeholder, text: $text)
+                    SecureField(text: $text) { Text(placeholder) }
                 }
             }
             .textContentType(contentType)
@@ -34,11 +34,11 @@ struct PasswordField: View {
                         .frame(width: 24)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(isRevealed ? "隐藏密码" : "显示密码")
+                .accessibilityLabel(Text(isRevealed ? "Hide Password" : "Show Password"))
             }
         }
         .appFieldChrome()
-        // Hide again if the reveal option goes away, e.g. switching from 登录 to 注册.
+        // Hide again if the reveal option goes away, e.g. switching from sign-in to sign-up.
         .onChange(of: allowsReveal) { _, allowed in
             if !allowed { isRevealed = false }
         }
@@ -48,8 +48,8 @@ struct PasswordField: View {
 #Preview {
     @Previewable @State var password = "secret123"
     VStack(spacing: 16) {
-        PasswordField(placeholder: "输入密码", text: $password, allowsReveal: true)
-        PasswordField(placeholder: "至少 8 位", text: $password, contentType: .newPassword)
+        PasswordField(placeholder: "Enter password", text: $password, allowsReveal: true)
+        PasswordField(placeholder: "At least 8 characters", text: $password, contentType: .newPassword)
     }
     .padding()
 }

@@ -80,7 +80,7 @@ final class PlayerViewModel {
             isLoopEnabled = false
             engine.setRate(Float(speed))
         } catch {
-            errorMessage = "视频加载失败：\(error.localizedDescription)"
+            errorMessage = String(localized: "Couldn't load the video: \(error.localizedDescription)")
             return
         }
         await loadThumbnails(url: url)

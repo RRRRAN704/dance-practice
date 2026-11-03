@@ -349,13 +349,15 @@ struct PracticeSessionTests {
     }
 }
 
+/// Words come from the string catalog's source language (English), which is what the test host runs in;
+/// dates follow the calendar's locale, pinned here so the results don't depend on the simulator's region.
 struct PracticeFormatTests {
     static let durationCases: [(Double, String)] = [
-        (30, "不到 1 分钟"),
-        (2700, "45 分钟"),
-        (7200, "2 小时"),
-        (12600, "3.5 小时"),
-        (3659, "1 小时"),
+        (30, "Under 1 min"),
+        (2700, "45 min"),
+        (7200, "2 h"),
+        (12600, "3.5 h"),
+        (3659, "1 h"),
     ]
 
     @Test(arguments: durationCases)
@@ -366,6 +368,7 @@ struct PracticeFormatTests {
     private var calendar: Calendar {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "Europe/London")!
+        calendar.locale = Locale(identifier: "en_GB")
         return calendar
     }
 
@@ -373,12 +376,21 @@ struct PracticeFormatTests {
         calendar.date(from: DateComponents(year: 2026, month: month, day: day, hour: hour, minute: minute))!
     }
 
+    @Test func datesFollowTheCalendarLocale() {
+        var chinese = calendar
+        chinese.locale = Locale(identifier: "zh-Hans")
+        #expect(TimeFormat.monthDay(date(10, 2, 12, 0), calendar: chinese) == "10月2日")
+        #expect(TimeFormat.monthDay(date(10, 2, 12, 0), calendar: calendar) == "2 Oct")
+        #expect(TimeFormat.mondayFirstWeekdays(calendar: chinese).full.first == "星期一")
+        #expect(TimeFormat.mondayFirstWeekdays(calendar: calendar).full.first == "Monday")
+    }
+
     @Test func lastPracticedRelativeDays() {
         let now = date(10, 21, 9, 0)
-        #expect(TimeFormat.lastPracticed(date(10, 21, 8, 5), now: now, calendar: calendar) == "今天 08:05")
-        #expect(TimeFormat.lastPracticed(date(10, 20, 23, 50), now: now, calendar: calendar) == "昨天 23:50")
-        #expect(TimeFormat.lastPracticed(date(10, 18, 12, 0), now: now, calendar: calendar) == "3 天前")
-        #expect(TimeFormat.lastPracticed(date(10, 2, 12, 0), now: now, calendar: calendar) == "10月2日")
+        #expect(TimeFormat.lastPracticed(date(10, 21, 8, 5), now: now, calendar: calendar) == "Today 08:05")
+        #expect(TimeFormat.lastPracticed(date(10, 20, 23, 50), now: now, calendar: calendar) == "Yesterday 23:50")
+        #expect(TimeFormat.lastPracticed(date(10, 18, 12, 0), now: now, calendar: calendar) == "3 days ago")
+        #expect(TimeFormat.lastPracticed(date(10, 2, 12, 0), now: now, calendar: calendar) == "2 Oct")
     }
 }
 
@@ -442,17 +454,17 @@ struct PracticeStatsTests {
 
 struct HomeFormatTests {
     @Test func durationPartsSplitValueAndUnit() {
-        #expect(TimeFormat.durationParts(0) == ("0", "分钟"))
-        #expect(TimeFormat.durationParts(2700) == ("45", "分钟"))
-        #expect(TimeFormat.durationParts(12600) == ("3.5", "小时"))
+        #expect(TimeFormat.durationParts(0) == ("0", "min"))
+        #expect(TimeFormat.durationParts(2700) == ("45", "min"))
+        #expect(TimeFormat.durationParts(12600) == ("3.5", "h"))
     }
 
     @Test func greetingByHour() {
-        #expect(HomeScreen.greeting(hour: 7) == "早上好")
-        #expect(HomeScreen.greeting(hour: 12) == "中午好")
-        #expect(HomeScreen.greeting(hour: 15) == "下午好")
-        #expect(HomeScreen.greeting(hour: 23) == "晚上好")
-        #expect(HomeScreen.greeting(hour: 2) == "晚上好")
+        #expect(HomeScreen.greeting(hour: 7) == "Good morning")
+        #expect(HomeScreen.greeting(hour: 12) == "Good afternoon")
+        #expect(HomeScreen.greeting(hour: 15) == "Good afternoon")
+        #expect(HomeScreen.greeting(hour: 23) == "Good evening")
+        #expect(HomeScreen.greeting(hour: 2) == "Good evening")
     }
 }
 
@@ -619,7 +631,7 @@ struct AuthValidationTests {
 
     @Test func registeringNeedsMatchingPasswords() {
         #expect(AuthSheet.validationProblem(email: "a@b.com", password: "12345678", confirmation: "12345679",
-                                            mode: .register) == "两次输入的密码不一致")
+                                            mode: .register) == "The passwords don't match")
     }
 }
 

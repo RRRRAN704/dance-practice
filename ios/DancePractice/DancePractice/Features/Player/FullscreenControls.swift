@@ -26,16 +26,16 @@ struct FullscreenControls: View {
 
     private var topBar: some View {
         HStack(spacing: 8) {
-            OverlayIconButton(systemImage: "chevron.left", accessibilityLabel: "退出全屏", action: onExit)
+            OverlayIconButton(systemImage: "chevron.left", accessibilityLabel: "Exit Fullscreen", action: onExit)
             Spacer()
             OverlayIconButton(
                 systemImage: isPinned ? "pin.fill" : "pin",
-                accessibilityLabel: isPinned ? "取消固定控件" : "固定控件",
+                accessibilityLabel: isPinned ? "Unpin Controls" : "Pin Controls",
                 isActive: isPinned,
                 action: onTogglePin
             )
             // Placeholder for the more-options menu.
-            OverlayIconButton(systemImage: "ellipsis", accessibilityLabel: "更多") {}
+            OverlayIconButton(systemImage: "ellipsis", accessibilityLabel: "More") {}
                 .disabled(true)
         }
         // Centred on the screen regardless of how many buttons sit on each side.

@@ -5,14 +5,14 @@
 
 import SwiftUI
 
-/// Horizontal chips: 全部 plus every genre. nil selection means 全部.
+/// Horizontal chips: All plus every genre. nil selection means All.
 struct GenreFilterBar: View {
     @Binding var selection: DanceGenre?
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                SelectableChip(title: "全部", isSelected: selection == nil) {
+                SelectableChip(title: "All", isSelected: selection == nil) {
                     selection = nil
                 }
                 ForEach(DanceGenre.allCases) { genre in

@@ -6,7 +6,7 @@
 import SwiftData
 import SwiftUI
 
-/// The 练习室 tab: every room, newest first. Tapping one opens the player.
+/// The Rooms tab: every room, newest first. Tapping one opens the player.
 struct RoomsScreen: View {
     @Query(sort: \PracticeRoom.createdAt, order: .reverse) private var rooms: [PracticeRoom]
     @Environment(\.modelContext) private var modelContext
@@ -15,7 +15,7 @@ struct RoomsScreen: View {
     @State private var isCreating = false
     @State private var editingRoom: PracticeRoom?
     @State private var roomToDelete: PracticeRoom?
-    /// nil = 全部.
+    /// nil = All.
     @State private var genreFilter: DanceGenre?
 
     var body: some View {
@@ -33,7 +33,7 @@ struct RoomsScreen: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Theme.background)
-            .navigationTitle("我的练习室")
+            .navigationTitle("My Rooms")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -45,7 +45,7 @@ struct RoomsScreen: View {
                             .frame(width: 34, height: 34)
                             .background(Circle().fill(Theme.ink))
                     }
-                    .accessibilityLabel("创建练习室")
+                    .accessibilityLabel("Create Room")
                 }
             }
             .navigationDestination(for: PracticeRoom.self) { room in
@@ -58,14 +58,14 @@ struct RoomsScreen: View {
                 RoomFormSheet(room: room)
             }
             .confirmationDialog(
-                "删除「\(roomToDelete?.name ?? "")」？",
+                "Delete “\(roomToDelete?.name ?? "")”?",
                 isPresented: isConfirmingDelete,
                 titleVisibility: .visible,
                 presenting: roomToDelete
             ) { room in
-                Button("删除", role: .destructive) { delete(room) }
+                Button("Delete", role: .destructive) { delete(room) }
             } message: { _ in
-                Text("练习室和导入的视频都会被删除，无法恢复。")
+                Text("The room and its imported video will be deleted. This can't be undone.")
             }
         }
     }
@@ -78,9 +78,9 @@ struct RoomsScreen: View {
     private var roomList: some View {
         if filteredRooms.isEmpty {
             ContentUnavailableView(
-                "没有\(genreFilter?.displayName ?? "")练习室",
+                "No \(genreFilter.map { String(localized: $0.displayName) } ?? "") rooms",
                 systemImage: "line.3.horizontal.decrease.circle",
-                description: Text("换个舞种看看，或者新建一个")
+                description: Text("Try another genre, or create a new room.")
             )
             .frame(maxHeight: .infinity)
         } else {
@@ -117,12 +117,12 @@ struct RoomsScreen: View {
             Button {
                 editingRoom = room
             } label: {
-                Label("编辑", systemImage: "pencil")
+                Label("Edit", systemImage: "pencil")
             }
             Button(role: .destructive) {
                 roomToDelete = room
             } label: {
-                Label("删除", systemImage: "trash")
+                Label("Delete", systemImage: "trash")
             }
         } label: {
             Image(systemName: "ellipsis")
@@ -131,7 +131,7 @@ struct RoomsScreen: View {
                 .frame(width: 44, height: 44)
                 .contentShape(Rectangle())
         }
-        .accessibilityLabel("更多操作")
+        .accessibilityLabel("More Actions")
     }
 
     /// Bridges `roomToDelete` to the Bool the dialog needs.
@@ -159,13 +159,13 @@ struct RoomsScreen: View {
                 .frame(width: 96, height: 96)
                 .background(Circle().fill(Theme.surface))
             VStack(spacing: 6) {
-                Text("还没有练习室")
+                Text("No practice rooms yet")
                     .font(.title3.weight(.bold))
-                Text("导入一个舞蹈视频，开始扒舞")
+                Text("Import a dance video to start learning.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            PrimaryButton(title: "创建练习室", systemImage: "plus") { isCreating = true }
+            PrimaryButton(title: "Create Room", systemImage: "plus") { isCreating = true }
                 .padding(.top, 8)
         }
         .padding(.horizontal, 40)

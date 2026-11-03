@@ -5,10 +5,12 @@
 
 import SwiftUI
 
-/// A small caption over a big number with its unit, e.g. 今日练习 / 45 分钟.
+/// A small caption over a big number with its unit, e.g. Today / 45 min.
 struct StatValue: View {
-    let title: String
+    let title: LocalizedStringResource
+    /// Already formatted, e.g. "45" or "3.5".
     let value: String
+    /// Already localized, e.g. "min" / "分钟".
     let unit: String
 
     var body: some View {
@@ -33,9 +35,9 @@ struct StatValue: View {
 
 #Preview {
     HStack {
-        StatValue(title: "今日练习", value: "45", unit: "分钟")
-        StatValue(title: "本周练习", value: "3.5", unit: "小时")
-        StatValue(title: "连续练习", value: "7", unit: "天")
+        StatValue(title: "Today", value: "45", unit: "min")
+        StatValue(title: "This Week", value: "3.5", unit: "h")
+        StatValue(title: "Streak", value: "7", unit: "days")
     }
     .cardStyle(padding: 16)
     .padding()

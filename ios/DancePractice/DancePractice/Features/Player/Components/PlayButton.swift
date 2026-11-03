@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// Wide white "开始播放 / 暂停" button at the bottom of the player.
+/// Wide white "Play / Pause" button at the bottom of the player.
 /// Compact shows just the icon in a white circle, for the portrait fullscreen bar.
 struct PlayButton: View {
     let isPlaying: Bool
@@ -21,7 +21,7 @@ struct PlayButton: View {
                     .frame(width: 56, height: 56)
                     .background(Circle().fill(.white))
             } else {
-                Label(isPlaying ? "暂停" : "开始播放", systemImage: isPlaying ? "pause" : "play")
+                Label(isPlaying ? "Pause" : "Play", systemImage: isPlaying ? "pause" : "play")
                     .font(.headline)
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity, minHeight: 56)
@@ -29,7 +29,7 @@ struct PlayButton: View {
             }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(isPlaying ? "暂停" : "开始播放")
+        .accessibilityLabel(isPlaying ? "Pause" : "Play")
     }
 }
 

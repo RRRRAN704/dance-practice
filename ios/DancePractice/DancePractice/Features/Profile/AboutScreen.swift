@@ -11,15 +11,15 @@ struct AboutScreen: View {
         let info = Bundle.main.infoDictionary
         let short = info?["CFBundleShortVersionString"] as? String ?? "1.0"
         let build = info?["CFBundleVersion"] as? String ?? "1"
-        return "版本 \(short) (\(build))"
+        return String(localized: "Version \(short) (\(build))")
     }
 
-    private static let features = [
-        ("speedometer", "0.25x–2.0x 无级变速"),
-        ("arrow.left.and.right.righttriangle.left.righttriangle.right", "一键镜面"),
-        ("repeat", "A-B 循环练习片段"),
-        ("film.stack", "缩略图时间轴"),
-        ("chart.bar", "练习时长自动统计"),
+    private static let features: [(String, LocalizedStringResource)] = [
+        ("speedometer", "Any speed from 0.25x to 2.0x"),
+        ("arrow.left.and.right.righttriangle.left.righttriangle.right", "One-tap mirroring"),
+        ("repeat", "A-B loops for tricky sections"),
+        ("film.stack", "Thumbnail timeline"),
+        ("chart.bar", "Automatic practice tracking"),
     ]
 
     var body: some View {
@@ -36,14 +36,14 @@ struct AboutScreen: View {
                     Text(version)
                         .font(.footnote)
                         .foregroundStyle(.secondary)
-                    Text("一个专属于舞蹈爱好者的扒舞练习工具")
+                    Text("A practice tool for dancers learning choreography from videos")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                         .padding(.top, 4)
                 }
                 .padding(.top, 16)
 
-                SettingsGroup(title: "功能") {
+                SettingsGroup(title: "Features") {
                     ForEach(Array(Self.features.enumerated()), id: \.offset) { index, feature in
                         if index > 0 { SettingsDivider() }
                         SettingsRow(title: feature.1, systemImage: feature.0, showsChevron: false)
@@ -54,7 +54,7 @@ struct AboutScreen: View {
             .padding(.bottom, 24)
         }
         .background(Theme.background)
-        .navigationTitle("关于")
+        .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
     }
 }
