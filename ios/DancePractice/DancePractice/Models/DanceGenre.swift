@@ -3,6 +3,8 @@
 //  DancePractice
 //
 
+import Foundation
+
 /// Dance style of a practice room. The raw value is what gets persisted, so don't rename cases.
 enum DanceGenre: String, CaseIterable, Identifiable {
     case kpop
@@ -13,13 +15,13 @@ enum DanceGenre: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var displayName: String {
+    var displayName: LocalizedStringResource {
         switch self {
         case .kpop: "Kpop"
         case .jazz: "Jazz"
         case .hiphop: "HipHop"
         case .urban: "Urban"
-        case .other: "其他"
+        case .other: "Other"
         }
     }
 }

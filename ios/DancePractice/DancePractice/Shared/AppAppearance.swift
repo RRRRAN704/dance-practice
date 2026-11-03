@@ -5,7 +5,7 @@
 
 import UIKit
 
-/// The 深色模式 setting. Applied to the window directly: `preferredColorScheme(nil)`
+/// The Dark Mode setting. Applied to the window directly: `preferredColorScheme(nil)`
 /// doesn't always switch back to following the system once it has been forced.
 enum AppAppearance: String, CaseIterable, Identifiable {
     case system, light, dark
@@ -14,11 +14,11 @@ enum AppAppearance: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
-    var displayName: String {
+    var displayName: LocalizedStringResource {
         switch self {
-        case .system: "跟随系统"
-        case .light: "浅色"
-        case .dark: "深色"
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
         }
     }
 

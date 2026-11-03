@@ -51,22 +51,22 @@ struct RoomFormSheet: View {
                         }
                     }
 
-                    LabeledField(title: "练习室名称", isRequired: true) {
-                        TextField("例如：Smoothie", text: $name)
+                    LabeledField(title: "Room Name", isRequired: true) {
+                        TextField("e.g. Smoothie", text: $name)
                             .textFieldStyle(.app)
                     }
 
-                    LabeledField(title: "歌手 / 团体") {
-                        TextField("例如：NCT DREAM", text: $artist)
+                    LabeledField(title: "Artist / Group") {
+                        TextField("e.g. NCT DREAM", text: $artist)
                             .textFieldStyle(.app)
                     }
 
-                    LabeledField(title: "舞种") {
+                    LabeledField(title: "Genre") {
                         genreGrid
                     }
 
-                    LabeledField(title: "备注") {
-                        TextField("例如：副歌部分重点练", text: $note, axis: .vertical)
+                    LabeledField(title: "Notes") {
+                        TextField("e.g. Focus on the chorus", text: $note, axis: .vertical)
                             .lineLimit(3...6)
                             .textFieldStyle(.app)
                     }
@@ -77,14 +77,14 @@ struct RoomFormSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .background(Color(.systemBackground))
             .safeAreaInset(edge: .bottom) {
-                PrimaryButton(title: isEditing ? "保存修改" : "创建练习室") { save() }
+                PrimaryButton(title: isEditing ? "Save Changes" : "Create Room") { save() }
                     .disabled(!canSave)
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
                     .padding(.bottom, 4)
                     .background(Color(.systemBackground))
             }
-            .navigationTitle(isEditing ? "编辑练习室" : "创建练习室")
+            .navigationTitle(isEditing ? "Edit Room" : "New Room")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -96,7 +96,7 @@ struct RoomFormSheet: View {
                             .background(Circle().fill(Theme.fieldFill))
                     }
                     .disabled(isImporting)
-                    .accessibilityLabel("取消")
+                    .accessibilityLabel("Cancel")
                 }
             }
             // A swipe-down mid-import would leave the copied file behind.
@@ -132,7 +132,7 @@ struct RoomFormSheet: View {
                     if isImporting {
                         ZStack {
                             Color.black.opacity(0.4)
-                            ProgressView("正在导入…")
+                            ProgressView("Importing…")
                                 .tint(.white)
                                 .foregroundStyle(.white)
                         }
@@ -143,7 +143,7 @@ struct RoomFormSheet: View {
         }
         .buttonStyle(.plain)
         .disabled(isImporting)
-        .accessibilityLabel(hasVideo ? "更换视频" : "选择视频")
+        .accessibilityLabel(hasVideo ? "Change Video" : "Choose Video")
     }
 
     private var emptyVideoPrompt: some View {
@@ -158,9 +158,9 @@ struct RoomFormSheet: View {
                     Image(systemName: "video.badge.plus")
                         .font(.system(size: 34))
                         .foregroundStyle(Theme.accent)
-                    Text("点击选择视频")
+                    Text("Tap to choose a video")
                         .font(.headline)
-                    Text("从相册导入一个舞蹈视频")
+                    Text("Import a dance video from your photo library")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -168,7 +168,7 @@ struct RoomFormSheet: View {
     }
 
     private var changeVideoPill: some View {
-        Label("更换视频", systemImage: "arrow.triangle.2.circlepath")
+        Label("Change Video", systemImage: "arrow.triangle.2.circlepath")
             .font(.footnote.weight(.semibold))
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
@@ -257,10 +257,10 @@ struct RoomFormSheet: View {
                 pendingVideoFileName = imported.url.lastPathComponent
                 pendingCoverFileName = await VideoFileStore.makeCover(for: imported.url)
             } else {
-                errorMessage = "无法读取该视频"
+                errorMessage = String(localized: "Couldn't read this video")
             }
         } catch {
-            errorMessage = "导入失败：\(error.localizedDescription)"
+            errorMessage = String(localized: "Import failed: \(error.localizedDescription)")
         }
     }
 

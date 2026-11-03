@@ -7,7 +7,7 @@ import SwiftUI
 
 /// A small label above a form control; required fields get a red asterisk.
 struct LabeledField<Content: View>: View {
-    let title: String
+    let title: LocalizedStringResource
     var isRequired = false
     @ViewBuilder let content: Content
 
@@ -29,8 +29,8 @@ struct LabeledField<Content: View>: View {
 
 #Preview {
     @Previewable @State var name = ""
-    LabeledField(title: "练习室名称", isRequired: true) {
-        TextField("例如：Smoothie", text: $name)
+    LabeledField(title: "Room Name", isRequired: true) {
+        TextField("e.g. Smoothie", text: $name)
             .textFieldStyle(.app)
     }
     .padding()

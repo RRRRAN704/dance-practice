@@ -34,9 +34,9 @@ extension View {
 #Preview {
     @Previewable @State var text = ""
     VStack {
-        TextField("例如：NCT DREAM", text: $text)
+        TextField("e.g. NCT DREAM", text: $text)
             .textFieldStyle(.app)
-        TextField("例如：副歌部分重点练", text: $text, axis: .vertical)
+        TextField("e.g. Focus on the chorus", text: $text, axis: .vertical)
             .lineLimit(3...6)
             .textFieldStyle(.app)
     }

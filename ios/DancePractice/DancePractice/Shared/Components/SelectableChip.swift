@@ -7,7 +7,7 @@ import SwiftUI
 
 /// Capsule toggle used for genre filters and pickers. Selected = ink fill.
 struct SelectableChip: View {
-    let title: String
+    let title: LocalizedStringResource
     let isSelected: Bool
     /// Stretch to the available width, for chips laid out in a grid.
     var fillsWidth = false
@@ -35,7 +35,7 @@ struct SelectableChip: View {
 
 #Preview {
     HStack {
-        SelectableChip(title: "全部", isSelected: true) {}
+        SelectableChip(title: "All", isSelected: true) {}
         SelectableChip(title: "Kpop", isSelected: false) {}
         SelectableChip(title: "Jazz", isSelected: false) {}
     }

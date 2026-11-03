@@ -193,9 +193,9 @@ enum AccountError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .wrongCredentials: "邮箱或密码错误"
-        case .emailTaken: "该邮箱已注册，请直接登录"
-        case .switchedAccount: "账号已切换"
+        case .wrongCredentials: String(localized: "Incorrect email or password")
+        case .emailTaken: String(localized: "This email is already registered. Please sign in.")
+        case .switchedAccount: String(localized: "You switched accounts")
         }
     }
 }

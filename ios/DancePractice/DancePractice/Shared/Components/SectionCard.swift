@@ -7,7 +7,7 @@ import SwiftUI
 
 /// A titled card: heading on the left, an optional control on the right, content below.
 struct SectionCard<Accessory: View, Content: View>: View {
-    let title: String
+    let title: LocalizedStringResource
     @ViewBuilder var accessory: Accessory
     @ViewBuilder var content: Content
 
@@ -27,14 +27,14 @@ struct SectionCard<Accessory: View, Content: View>: View {
 }
 
 extension SectionCard where Accessory == EmptyView {
-    init(title: String, @ViewBuilder content: () -> Content) {
+    init(title: LocalizedStringResource, @ViewBuilder content: () -> Content) {
         self.init(title: title, accessory: { EmptyView() }, content: content)
     }
 }
 
 #Preview {
-    SectionCard(title: "练习时长趋势") {
-        Text("近 7 天").font(.subheadline).foregroundStyle(.secondary)
+    SectionCard(title: "Practice Trend") {
+        Text("Last 7 Days").font(.subheadline).foregroundStyle(.secondary)
     } content: {
         Rectangle().fill(.quaternary).frame(height: 120)
     }

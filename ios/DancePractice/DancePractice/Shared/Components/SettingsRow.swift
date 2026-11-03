@@ -6,10 +6,11 @@
 import SwiftUI
 
 /// One row in a settings card: icon, title, an optional value on the right, and a chevron.
-/// Disabled rows are dimmed and show their value (e.g. 即将上线) instead of a chevron.
+/// Disabled rows are dimmed and show their value (e.g. Coming soon) instead of a chevron.
 struct SettingsRow: View {
-    let title: String
+    let title: LocalizedStringResource
     let systemImage: String
+    /// Already-localized text, e.g. a number or a status that the caller computed.
     var value: String?
     var showsChevron = true
 
@@ -44,7 +45,7 @@ struct SettingsRow: View {
 
 /// Stacks rows in one card with hairlines between them.
 struct SettingsGroup<Content: View>: View {
-    var title: String?
+    var title: LocalizedStringResource?
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -75,12 +76,12 @@ struct SettingsDivider: View {
 }
 
 #Preview {
-    SettingsGroup(title: "设置") {
-        SettingsRow(title: "深色模式", systemImage: "moon", value: "跟随系统")
+    SettingsGroup(title: "Settings") {
+        SettingsRow(title: "Dark Mode", systemImage: "moon", value: "System")
         SettingsDivider()
-        SettingsRow(title: "存储空间", systemImage: "internaldrive", value: "2.4 GB")
+        SettingsRow(title: "Storage", systemImage: "internaldrive", value: "2.4 GB")
         SettingsDivider()
-        SettingsRow(title: "意见反馈", systemImage: "envelope", value: "即将上线")
+        SettingsRow(title: "Feedback", systemImage: "envelope", value: "Coming soon")
             .disabled(true)
     }
     .padding()

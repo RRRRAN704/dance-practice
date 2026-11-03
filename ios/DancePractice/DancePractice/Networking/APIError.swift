@@ -38,13 +38,15 @@ extension APIError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .offline:
-            "无法连接服务器，请检查网络"
+            String(localized: "Can't reach the server. Check your connection.")
         case .unauthorized:
-            "登录已过期，请重新登录"
+            String(localized: "Your session has expired. Please sign in again.")
         case .server(let status, let message):
-            status >= 500 ? "服务器出错了，请稍后再试" : message ?? "请求失败（\(status)）"
+            status >= 500
+                ? String(localized: "Something went wrong on the server. Please try again later.")
+                : message ?? String(localized: "Request failed (\(status))")
         case .unreadableResponse:
-            "服务器返回了无法识别的数据"
+            String(localized: "The server sent a response the app couldn't read.")
         }
     }
 }

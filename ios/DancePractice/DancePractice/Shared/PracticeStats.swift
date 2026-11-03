@@ -12,7 +12,7 @@ struct DayTotal: Identifiable, Equatable {
     var id: Date { day }
 }
 
-/// Practice time for one genre; nil genre means 未分类.
+/// Practice time for one genre; nil genre means uncategorised.
 struct GenreShare: Identifiable, Equatable {
     let genre: DanceGenre?
     let seconds: TimeInterval
@@ -22,7 +22,7 @@ struct GenreShare: Identifiable, Equatable {
 /// Pure calculations over practice sessions, shared by Home and Stats.
 /// Every function takes `now` and a calendar so tests don't depend on the clock or locale.
 enum PracticeStats {
-    /// Weeks start on Monday, as in the 一…日 dot row.
+    /// Weeks start on Monday, as in the Home tab's Mon–Sun dot row.
     static func calendar(base: Calendar = .current) -> Calendar {
         var calendar = base
         calendar.firstWeekday = 2
@@ -127,7 +127,7 @@ enum PracticeStats {
         }
     }
 
-    /// Practice time per genre (nil = 未分类), biggest first; genres with no time are left out.
+    /// Practice time per genre (nil = uncategorised), biggest first; genres with no time are left out.
     static func genreTotals(_ sessions: [PracticeSession]) -> [GenreShare] {
         let totals = sessions.reduce(into: [DanceGenre?: TimeInterval]()) { totals, session in
             totals[session.genre, default: 0] += session.duration
@@ -140,7 +140,7 @@ enum PracticeStats {
             }
     }
 
-    /// 未分类 sorts last.
+    /// Uncategorised sorts last.
     private static func genreOrder(_ genre: DanceGenre?) -> Int {
         genre.flatMap { DanceGenre.allCases.firstIndex(of: $0) } ?? DanceGenre.allCases.count
     }

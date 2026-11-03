@@ -171,7 +171,7 @@ struct TimelineBar: View {
                         onHandleDragEnded()
                     }
             )
-            .accessibilityLabel(which == .a ? "A 点" : "B 点")
+            .accessibilityLabel(which == .a ? "Point A" : "Point B")
             .position(x: hitX, y: flagRowHeight / 2)
     }
 

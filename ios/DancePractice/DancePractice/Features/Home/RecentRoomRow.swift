@@ -43,7 +43,7 @@ struct RecentRoomRow: View {
     }
 
     private var lastPracticedText: String {
-        guard let last = room.lastPracticedAt else { return "还没有练习记录" }
-        return "上次练习：\(TimeFormat.lastPracticed(last))"
+        guard let last = room.lastPracticedAt else { return String(localized: "No practice yet") }
+        return String(localized: "Last practiced: \(TimeFormat.lastPracticed(last))")
     }
 }

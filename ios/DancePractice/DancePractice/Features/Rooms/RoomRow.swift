@@ -34,15 +34,15 @@ struct RoomRow: View {
         }
     }
 
-    /// "累计 1.5 小时 · 上次 今天 20:12"
+    /// "Total 1.5 h · Last Today 20:12"
     private var practiceSummary: String {
-        guard let last = room.lastPracticedAt else { return "还没有练习记录" }
-        return "累计 \(TimeFormat.practiceDuration(room.totalPracticeTime)) · 上次 \(TimeFormat.lastPracticed(last))"
+        guard let last = room.lastPracticedAt else { return String(localized: "No practice yet") }
+        return String(localized: "Total \(TimeFormat.practiceDuration(room.totalPracticeTime)) · Last \(TimeFormat.lastPracticed(last))")
     }
 
     /// "Artist · Genre", skipping whichever is missing.
     private var subtitle: String? {
-        let parts = [room.artist, room.genre?.displayName].compactMap { $0 }
+        let parts = [room.artist, room.genre.map { String(localized: $0.displayName) }].compactMap { $0 }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")
     }
 }

@@ -12,10 +12,10 @@ struct AuthSheet: View {
 
         var id: Self { self }
 
-        var title: String {
+        var title: LocalizedStringResource {
             switch self {
-            case .login: "登录"
-            case .register: "注册"
+            case .login: "Sign In"
+            case .register: "Sign Up"
             }
         }
     }
@@ -37,7 +37,7 @@ struct AuthSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
-                    Text("登录后，练习室和练习记录会同步到云端，换手机也不会丢。视频文件只保存在本机。")
+                    Text("Signed in, your rooms and practice history sync to the cloud, so a new phone won't lose them. Videos stay on this device.")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
 
@@ -50,7 +50,7 @@ struct AuthSheet: View {
                         }
                     }
 
-                    LabeledField(title: "邮箱") {
+                    LabeledField(title: "Email") {
                         TextField("name@example.com", text: $email)
                             .keyboardType(.emailAddress)
                             .textContentType(.username)
@@ -59,9 +59,9 @@ struct AuthSheet: View {
                             .textFieldStyle(.app)
                     }
 
-                    LabeledField(title: "密码") {
+                    LabeledField(title: "Password") {
                         // The eye is login-only: when registering, the confirmation field catches typos.
-                        PasswordField(placeholder: mode == .register ? "至少 8 位" : "输入密码",
+                        PasswordField(placeholder: mode == .register ? "At least 8 characters" : "Enter password",
                                       text: $password,
                                       contentType: mode == .register ? .newPassword : .password,
                                       allowsReveal: mode == .login)
@@ -69,8 +69,8 @@ struct AuthSheet: View {
                     }
 
                     if mode == .register {
-                        LabeledField(title: "确认密码") {
-                            PasswordField(placeholder: "再输入一次密码", text: $confirmation,
+                        LabeledField(title: "Confirm Password") {
+                            PasswordField(placeholder: "Enter the password again", text: $confirmation,
                                           contentType: .newPassword)
                                 .onSubmit(submit)
                         }
@@ -88,14 +88,14 @@ struct AuthSheet: View {
             .scrollDismissesKeyboard(.interactively)
             .background(Color(.systemBackground))
             .safeAreaInset(edge: .bottom) {
-                PrimaryButton(title: isSubmitting ? "请稍候…" : mode.title, action: submit)
+                PrimaryButton(title: isSubmitting ? "Please wait…" : mode.title, action: submit)
                     .disabled(!canSubmit)
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
                     .padding(.bottom, 4)
                     .background(Color(.systemBackground))
             }
-            .navigationTitle(mode.title)
+            .navigationTitle(Text(mode.title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -106,7 +106,7 @@ struct AuthSheet: View {
                             .frame(width: 30, height: 30)
                             .background(Circle().fill(Theme.fieldFill))
                     }
-                    .accessibilityLabel("取消")
+                    .accessibilityLabel("Cancel")
                 }
             }
             .interactiveDismissDisabled(isSubmitting)
@@ -145,18 +145,18 @@ struct AuthSheet: View {
         }
     }
 
-    /// Checked before sending, so the common mistakes get a Chinese message without a round trip.
+    /// Checked before sending, so the common mistakes get a friendly message without a round trip.
     static func validationProblem(email: String, password: String, confirmation: String = "",
                                   mode: Mode) -> String? {
         let parts = email.split(separator: "@", omittingEmptySubsequences: false)
         if parts.count != 2 || parts[0].isEmpty || !parts[1].contains(".") {
-            return "请输入有效的邮箱地址"
+            return String(localized: "Please enter a valid email address")
         }
         if mode == .register && !passwordLength.contains(password.count) {
-            return "密码需要 \(passwordLength.lowerBound)–\(passwordLength.upperBound) 位"
+            return String(localized: "Password must be \(passwordLength.lowerBound)–\(passwordLength.upperBound) characters")
         }
         if mode == .register && password != confirmation {
-            return "两次输入的密码不一致"
+            return String(localized: "The passwords don't match")
         }
         return nil
     }

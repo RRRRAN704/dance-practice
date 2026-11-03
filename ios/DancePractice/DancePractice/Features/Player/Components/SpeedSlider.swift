@@ -91,7 +91,7 @@ struct SpeedSlider: View {
             )
         }
         .accessibilityElement()
-        .accessibilityLabel("速度")
+        .accessibilityLabel("Speed")
         .accessibilityValue(Self.label(for: speed))
         .accessibilityAdjustableAction { direction in
             switch direction {

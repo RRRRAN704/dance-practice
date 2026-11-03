@@ -34,16 +34,16 @@ struct StorageScreen: View {
         ScrollView {
             VStack(spacing: 22) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("已使用")
+                    Text("Used")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     Text(StorageUsage.format(totalBytes))
                         .font(.system(size: 34, weight: .bold, design: .rounded))
-                    Text("\(rooms.count) 个练习室的视频和封面")
+                    Text("Videos and covers for \(rooms.count) rooms")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                     if otherBytes > 0 {
-                        Text("另有 \(StorageUsage.format(otherBytes)) 属于本机的其他账号或游客")
+                        Text("Another \(StorageUsage.format(otherBytes)) belongs to other accounts or the guest on this device")
                             .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
@@ -53,9 +53,9 @@ struct StorageScreen: View {
 
                 if orphanBytes > 0 {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("有 \(StorageUsage.format(orphanBytes)) 的文件不属于任何练习室，可以安全清理。")
+                        Text("\(StorageUsage.format(orphanBytes)) of files don't belong to any room and can be safely removed.")
                             .font(.subheadline)
-                        PrimaryButton(title: "清理未使用的文件", systemImage: "trash") {
+                        PrimaryButton(title: "Remove Unused Files", systemImage: "trash") {
                             isConfirmingCleanup = true
                         }
                     }
@@ -63,7 +63,7 @@ struct StorageScreen: View {
                 }
 
                 if !roomsBySize.isEmpty {
-                    SettingsGroup(title: "各练习室占用") {
+                    SettingsGroup(title: "By Room") {
                         ForEach(Array(roomsBySize.enumerated()), id: \.element.room.id) { index, item in
                             if index > 0 { SettingsDivider() }
                             roomRow(item.room, bytes: item.bytes)
@@ -71,7 +71,7 @@ struct StorageScreen: View {
                     }
                 }
 
-                Text("要释放更多空间，可以在练习室页面删除不再需要的练习室。")
+                Text("To free up more space, delete rooms you no longer need on the Rooms tab.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -81,21 +81,21 @@ struct StorageScreen: View {
             .padding(.vertical, 8)
         }
         .background(Theme.background)
-        .navigationTitle("存储空间")
+        .navigationTitle("Storage")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             sizes = VideoFileStore.fileSizes()
             totalBytes = VideoFileStore.totalBytes()
             otherStoresFiles = AccountStores.fileNamesInOtherStores(than: accounts.account?.id)
         }
-        .confirmationDialog("清理未使用的文件？", isPresented: $isConfirmingCleanup, titleVisibility: .visible) {
-            Button("清理 \(StorageUsage.format(orphanBytes))", role: .destructive) {
+        .confirmationDialog("Remove unused files?", isPresented: $isConfirmingCleanup, titleVisibility: .visible) {
+            Button("Remove \(StorageUsage.format(orphanBytes))", role: .destructive) {
                 orphans.forEach(VideoFileStore.delete(fileName:))
                 sizes = VideoFileStore.fileSizes()
                 totalBytes = VideoFileStore.totalBytes()
             }
         } message: {
-            Text("只会删除不属于任何练习室的文件，练习室不受影响。")
+            Text("Only files that don't belong to any room are removed. Your rooms aren't affected.")
         }
     }
 

@@ -6,7 +6,7 @@
 import SwiftData
 import SwiftUI
 
-/// The 统计 tab: totals, streaks, a daily trend, a 12-week heatmap and genre shares.
+/// The Stats tab: totals, streaks, a daily trend, a 12-week heatmap and genre shares.
 struct StatsScreen: View {
     @Query private var sessions: [PracticeSession]
 
@@ -31,7 +31,7 @@ struct StatsScreen: View {
                 .padding(.vertical, 8)
             }
             .background(Theme.background)
-            .navigationTitle("练习统计")
+            .navigationTitle("Practice Stats")
         }
     }
 
@@ -40,9 +40,9 @@ struct StatsScreen: View {
         let week = TimeFormat.durationParts(PracticeStats.thisWeek(sessions, calendar: calendar))
         let month = TimeFormat.durationParts(PracticeStats.thisMonth(sessions, calendar: calendar))
         return HStack(spacing: 12) {
-            StatValue(title: "今日练习", value: today.value, unit: today.unit)
-            StatValue(title: "本周练习", value: week.value, unit: week.unit)
-            StatValue(title: "本月练习", value: month.value, unit: month.unit)
+            StatValue(title: "Today", value: today.value, unit: today.unit)
+            StatValue(title: "This Week", value: week.value, unit: week.unit)
+            StatValue(title: "This Month", value: month.value, unit: month.unit)
         }
         .cardStyle(padding: 16)
     }
@@ -50,10 +50,12 @@ struct StatsScreen: View {
     private var streakCard: some View {
         let days = PracticeStats.practicedDays(sessions.map(\.startedAt), calendar: calendar)
         let all = TimeFormat.durationParts(sessions.reduce(0) { $0 + $1.duration })
+        let current = PracticeStats.currentStreak(days: days, calendar: calendar)
+        let longest = PracticeStats.longestStreak(days: days, calendar: calendar)
         return HStack(spacing: 12) {
-            StatValue(title: "连续练习", value: String(PracticeStats.currentStreak(days: days, calendar: calendar)), unit: "天")
-            StatValue(title: "历史最长", value: String(PracticeStats.longestStreak(days: days, calendar: calendar)), unit: "天")
-            StatValue(title: "累计练习", value: all.value, unit: all.unit)
+            StatValue(title: "Current Streak", value: String(current), unit: TimeFormat.dayUnit(current))
+            StatValue(title: "Longest Streak", value: String(longest), unit: TimeFormat.dayUnit(longest))
+            StatValue(title: "All Time", value: all.value, unit: all.unit)
         }
         .cardStyle(padding: 16)
     }
@@ -63,9 +65,9 @@ struct StatsScreen: View {
             Image(systemName: "chart.bar.xaxis")
                 .font(.system(size: 30))
                 .foregroundStyle(Theme.accent)
-            Text("还没有练习数据")
+            Text("No practice yet")
                 .font(.headline)
-            Text("在练习室里播放视频，练习时长会自动记录在这里")
+            Text("Play a video in a practice room and your practice time will show up here.")
                 .font(.footnote)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)

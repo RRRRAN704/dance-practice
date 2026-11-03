@@ -12,7 +12,6 @@ struct HeatmapCard: View {
     var now: Date = .now
 
     static let weeks = 12
-    private static let rowLabels = ["一", "", "三", "", "五", "", "日"]
     private static let spacing: CGFloat = 4
 
     @State private var selectedDay: Date?
@@ -20,16 +19,18 @@ struct HeatmapCard: View {
     var body: some View {
         let columns = PracticeStats.heatmapWeeks(weeks: Self.weeks, now: now, calendar: calendar)
         let today = calendar.startOfDay(for: now)
+        // Label every other row (Mon, Wed, Fri, Sun) so the column stays readable.
+        let rowLabels = TimeFormat.mondayFirstWeekdays(calendar: calendar).short.enumerated().map { $0.offset.isMultiple(of: 2) ? $0.element : "" }
 
-        SectionCard(title: "每周练习热力图") {
-            Text("近 \(Self.weeks) 周")
+        SectionCard(title: "Weekly Heatmap") {
+            Text("Last \(Self.weeks) Weeks")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         } content: {
             HStack(alignment: .top, spacing: Self.spacing) {
                 VStack(spacing: Self.spacing) {
-                    ForEach(Self.rowLabels.indices, id: \.self) { row in
-                        Text(Self.rowLabels[row])
+                    ForEach(rowLabels.indices, id: \.self) { row in
+                        Text(rowLabels[row])
                             .font(.caption2)
                             .foregroundStyle(.secondary)
                             .frame(maxHeight: .infinity)
@@ -76,31 +77,30 @@ struct HeatmapCard: View {
     }
 
     private var selectionText: String {
-        guard let selectedDay else { return "点一个格子查看当天时长" }
-        let parts = calendar.dateComponents([.month, .day], from: selectedDay)
-        let seconds = totals[selectedDay] ?? 0
-        let amount = seconds > 0 ? TimeFormat.practiceDuration(seconds) : "没有练习"
-        return "\(parts.month ?? 0)月\(parts.day ?? 0)日 · \(amount)"
+        guard let selectedDay else { return String(localized: "Tap a square to see that day") }
+        return "\(TimeFormat.monthDay(selectedDay, calendar: calendar)) · \(amountText(totals[selectedDay] ?? 0))"
     }
 
     private var legend: some View {
         HStack(spacing: 3) {
-            Text("少")
+            Text("Less")
             ForEach(0..<5) { level in
                 RoundedRectangle(cornerRadius: 2)
                     .fill(ChartPalette.heat(level))
                     .frame(width: 10, height: 10)
             }
-            Text("多")
+            Text("More")
         }
         .font(.caption2)
         .foregroundStyle(.secondary)
-        .accessibilityLabel("颜色越深练得越多：1、15、30、60 分钟为分界")
+        .accessibilityLabel("Darker means more practice. Steps at 1, 15, 30 and 60 minutes.")
     }
 
     private func accessibilityText(day: Date, seconds: TimeInterval) -> String {
-        let parts = calendar.dateComponents([.month, .day], from: day)
-        let amount = seconds > 0 ? TimeFormat.practiceDuration(seconds) : "没有练习"
-        return "\(parts.month ?? 0)月\(parts.day ?? 0)日，\(amount)"
+        "\(TimeFormat.monthDay(day, calendar: calendar)), \(amountText(seconds))"
+    }
+
+    private func amountText(_ seconds: TimeInterval) -> String {
+        seconds > 0 ? TimeFormat.practiceDuration(seconds) : String(localized: "No practice")
     }
 }

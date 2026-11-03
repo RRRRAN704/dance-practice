@@ -57,7 +57,7 @@ enum GuestImporter {
             let room = PracticeRoom(
                 name: source.name,
                 // Its own name for the file, so deleting either room never takes the other's video.
-                // If the guest's video is gone, the made-up name shows "视频不在本机" in the player.
+                // If the guest's video is gone, the made-up name shows "Video Not on This Device" in the player.
                 videoFileName: VideoFileStore.duplicate(fileName: source.videoFileName) ?? "\(UUID().uuidString).mov",
                 coverFileName: source.coverFileName.flatMap(VideoFileStore.duplicate(fileName:)),
                 artist: source.artist,
