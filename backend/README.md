@@ -18,6 +18,16 @@ docker compose up -d          # Postgres on localhost:5433
 curl localhost:8080/actuator/health
 ```
 
+### One command, no Java needed
+
+```bash
+docker compose --profile full up -d --build   # Postgres + the API, built from the Dockerfile
+curl localhost:8080/actuator/health
+docker compose --profile full down            # stop both (data stays in the pgdata volume)
+```
+
+The `Dockerfile` is a multi-stage build (JDK compiles, a JRE-only image runs it as a non-root user) and is the same image that production runs.
+
 Database settings can be overridden with `DB_URL`, `DB_USERNAME` and `DB_PASSWORD`.
 
 Swagger UI: http://localhost:8080/swagger-ui.html. `requests.http` walks through the whole API from IntelliJ.

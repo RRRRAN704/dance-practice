@@ -1,0 +1,6 @@
+# Caddy gets and renews a Let's Encrypt certificate for API_DOMAIN automatically,
+# redirects HTTP to HTTPS, and forwards everything to the Spring Boot container.
+{$API_DOMAIN} {
+	encode zstd gzip
+	reverse_proxy backend:8080
+}
