@@ -36,6 +36,13 @@ services:
       # Trust X-Forwarded-* from Caddy so generated URLs (e.g. Swagger) use https.
       SERVER_FORWARD_HEADERS_STRATEGY: framework
     mem_limit: 768m
+    # Lets `docker compose up --wait` (used by the deploy) know when the new version is really serving.
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 60s
     depends_on:
       postgres:
         condition: service_healthy
