@@ -1,0 +1,5 @@
+# Installed on the EC2 host as /etc/cron.d/dance-backup (owner root, mode 644).
+# Daily database backup at 03:00 UTC; output goes to /var/log/dance-backup.log.
+SHELL=/bin/bash
+PATH=/usr/local/bin:/usr/bin:/bin
+0 3 * * * root /opt/dance-practice/backup.sh >> /var/log/dance-backup.log 2>&1

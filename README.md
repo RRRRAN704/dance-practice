@@ -89,6 +89,9 @@ More detail: [backend/README.md](backend/README.md).
   - **No long-lived credentials.** GitHub's OIDC token is exchanged for an AWS role that can only send commands to that one instance, and only from this repository's `main` branch. The server pulls the image with the job's own short-lived token.
   - **SSH stays closed to the internet**; the deploy goes through AWS Systems Manager.
   - **Automatic rollback:** the deploy waits for the new container's health check and switches back to the previous image if it fails.
+- **Daily database backups** ([`backup.sh`](backend/deploy/backup.sh)): cron runs `pg_dump` at 03:00 UTC, checks the dump is readable, keeps 7 days on the server and uploads it to S3.
+  - The server's role can put and read backups but **not delete them**, and the bucket is versioned, so a compromised server can't destroy the history. A lifecycle rule expires backups after 30 days.
+  - **Restore drill** ([`restore-drill.sh`](backend/deploy/restore-drill.sh)): restores the newest S3 backup into a throwaway Postgres container and compares every table's row count with production.
 
 ## Repository layout
 
