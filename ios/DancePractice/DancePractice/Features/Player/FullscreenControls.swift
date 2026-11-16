@@ -76,7 +76,7 @@ struct FullscreenControls: View {
                             .frame(width: 48)
                         LoopButton(viewModel: viewModel, showsTitle: false)
                             .frame(width: 48)
-                        MetronomeButton(showsTitle: false)
+                        BeatCountButton(viewModel: viewModel, showsTitle: false)
                             .frame(width: 48)
                         Spacer(minLength: 0)
                         PlayButton(isPlaying: viewModel.isPlaying, isCompact: true, action: viewModel.togglePlayPause)
@@ -104,7 +104,7 @@ struct FullscreenControls: View {
             barDivider
             LoopButton(viewModel: viewModel, showsTitle: showsTitles)
                 .frame(width: showsTitles ? 112 : 48)
-            MetronomeButton(showsTitle: showsTitles)
+            BeatCountButton(viewModel: viewModel, showsTitle: showsTitles)
                 .frame(width: showsTitles ? 88 : 48)
             PlayButton(isPlaying: viewModel.isPlaying, action: viewModel.togglePlayPause)
                 .frame(width: showsTitles ? 136 : 120)

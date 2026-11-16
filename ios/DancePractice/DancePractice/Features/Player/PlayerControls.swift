@@ -74,13 +74,54 @@ struct LoopButton: View {
     }
 }
 
-/// Placeholder until the metronome step.
-struct MetronomeButton: View {
+/// Beat count menu: tap along to start counting, stop where the music stops, show/hide, clear.
+struct BeatCountButton: View {
+    let viewModel: PlayerViewModel
     var showsTitle = true
 
     var body: some View {
-        ControlButton(title: "Metronome", systemImage: "music.note", showsTitle: showsTitle) {}
-            .disabled(true)
+        Menu {
+            if let segment = viewModel.beatGrid.segment(at: viewModel.currentTime) {
+                Section("\(Int(segment.bpm.rounded())) BPM") {
+                    menuItems
+                }
+            } else {
+                menuItems
+            }
+        } label: {
+            ControlButtonLabel(
+                title: "Count",
+                systemImage: "metronome",
+                isActive: !viewModel.beatGrid.isEmpty && viewModel.isBeatCountVisible,
+                showsTitle: showsTitle
+            )
+        }
+        .menuOrder(.fixed)
+        .disabled(viewModel.duration == 0)
+        .accessibilityLabel(Text("Count"))
+    }
+
+    @ViewBuilder private var menuItems: some View {
+        Button(action: viewModel.startTapping) {
+            Label(viewModel.beatGrid.isEmpty ? "Tap Along to Count" : "Tap Along from Here", systemImage: "hand.tap")
+        }
+        if viewModel.beatGrid.segment(at: viewModel.currentTime) != nil {
+            Button(action: viewModel.stopCountingHere) {
+                Label("Stop Counting Here", systemImage: "stop.circle")
+            }
+        }
+        if !viewModel.beatGrid.isEmpty {
+            Button(action: viewModel.toggleBeatCountVisible) {
+                if viewModel.isBeatCountVisible {
+                    Label("Hide Count", systemImage: "eye.slash")
+                } else {
+                    Label("Show Count", systemImage: "eye")
+                }
+            }
+            Button(role: .destructive, action: viewModel.clearBeatCounts) {
+                Label("Clear All Counts", systemImage: "trash")
+            }
+        }
     }
 }
 

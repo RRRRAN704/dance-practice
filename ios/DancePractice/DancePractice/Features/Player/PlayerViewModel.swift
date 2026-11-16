@@ -6,7 +6,7 @@
 import AVFoundation
 import Observation
 
-/// Player screen state: speed, mirror and A-B loop. Delegates playback to `PlayerEngine`.
+/// Player screen state: speed, mirror, A-B loop and beat count. Delegates playback to `PlayerEngine`.
 @Observable
 @MainActor
 final class PlayerViewModel {
@@ -31,6 +31,13 @@ final class PlayerViewModel {
     private(set) var videoSize: CGSize = .zero
     /// One slot per thumbnail; nil until that frame is decoded.
     private(set) var thumbnails: [CGImage?] = []
+    private(set) var beatGrid = BeatGrid()
+    private(set) var isBeatCountVisible = true
+    /// The tap pad is up and taps are being collected.
+    private(set) var isTapping = false
+    private(set) var tapTempo = TapTempo()
+    /// The last attempt was too uneven to use; the pad asks for another go.
+    private(set) var tapsWereUneven = false
 
     @ObservationIgnored private let engine = PlayerEngine()
     @ObservationIgnored private var isScrubbing = false
@@ -42,6 +49,11 @@ final class PlayerViewModel {
     var loopRange: LoopRange? {
         guard let markA, let markB else { return nil }
         return LoopRange(start: markA, end: markB, duration: duration)
+    }
+
+    /// The count to show now, if this moment is counted and the count isn't hidden.
+    var beatPosition: BeatPosition? {
+        isBeatCountVisible ? beatGrid.position(at: currentTime) : nil
     }
 
     /// Portrait videos stay portrait in fullscreen; landscape ones rotate.
@@ -211,6 +223,62 @@ final class PlayerViewModel {
             seek(to: markA)
         }
         endScrubbing()
+    }
+
+    // MARK: - Beat count
+
+    /// Shows the tap pad. Starts playback, since taps follow the music.
+    func startTapping() {
+        tapTempo.reset()
+        tapsWereUneven = false
+        isTapping = true
+        if !isPlaying {
+            engine.play()
+        }
+    }
+
+    /// One tap on the beat. Reads the engine's own clock rather than `currentTime`, which only updates 30 times a second.
+    func tapBeat() {
+        guard isTapping else { return }
+        tapsWereUneven = false
+        tapTempo.tap(at: engine.currentTime)
+        if tapTempo.count >= TapTempo.maximumTaps {
+            finishTapping()
+        }
+    }
+
+    /// Turns the taps so far into a segment; uneven taps clear and the pad stays up for another go.
+    func finishTapping() {
+        switch tapTempo.estimate {
+        case let .segment(start, bpm):
+            beatGrid.add(BeatSegment(start: start, bpm: bpm))
+            isBeatCountVisible = true
+            isTapping = false
+        case .uneven:
+            tapTempo.reset()
+            tapsWereUneven = true
+        case .needMoreTaps:
+            break
+        }
+    }
+
+    func cancelTapping() {
+        isTapping = false
+        tapTempo.reset()
+        tapsWereUneven = false
+    }
+
+    /// The music stops here (talking, a pause): stop counting from now on.
+    func stopCountingHere() {
+        beatGrid.stop(at: currentTime)
+    }
+
+    func toggleBeatCountVisible() {
+        isBeatCountVisible.toggle()
+    }
+
+    func clearBeatCounts() {
+        beatGrid.removeAll()
     }
 
     // MARK: - Private
