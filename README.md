@@ -1,6 +1,6 @@
 # Dance Practice
 
-An iOS app for learning choreography from videos. Slow the video down, mirror it, loop the tricky eight counts, and keep track of how much you practise, with an optional account that syncs your rooms and practice history across devices through a Spring Boot backend running on AWS.
+An iOS app for learning choreography from videos. Slow the video down, mirror it, loop the tricky eight counts, hear the beat counted for you, and keep track of how much you practise, with an optional account that syncs your rooms and practice history across devices through a Spring Boot backend running on AWS.
 
 [![Backend](https://github.com/RRRRAN704/dance-practice/actions/workflows/backend.yml/badge.svg)](https://github.com/RRRRAN704/dance-practice/actions/workflows/backend.yml)
 ![iOS 17+](https://img.shields.io/badge/iOS-17%2B-black)
@@ -23,6 +23,13 @@ An iOS app for learning choreography from videos. Slow the video down, mirror it
 - One-tap mirroring, so you can follow a dancer facing you
 - A-B loops with draggable markers on a thumbnail timeline
 - Fullscreen that follows the video's orientation, with auto-hiding controls; rotate the phone to enter or leave
+
+**Beat count** (instead of a plain metronome, which never lines up with the music in the video)
+- Tap along with the music a few times and the app works out the tempo and where each "1" falls
+- The count (1 to 8) shows over the video, and a click plays on every beat, with a higher click on each "1"
+- Counted in segments, for studio videos with talking, pauses and restarts: start a new count where the music restarts, stop it where the music stops
+- Stays on the beat at any speed and through seeks and A-B loops
+- Long songs stay in time: tapping along again later fine-tunes the tempo using both sets of taps
 
 **Practice tracking**
 - One practice room per video, with artist, genre and notes
@@ -65,7 +72,8 @@ flowchart LR
 
 ### iOS
 - **Layers kept apart:** views only render state; view models own the logic; `PlayerEngine` wraps AVFoundation; storage and networking sit behind small types. The player doesn't know about SwiftData: it reports practice time through a callback, and the screen that hosts it saves the session.
-- **Pure, tested logic:** practice timing, streak and stats maths, A-B loop rules and the sync merge are plain functions with unit tests.
+- **Pure, tested logic:** practice timing, streak and stats maths, A-B loop rules, beat counting and the sync merge are plain functions with unit tests.
+- **Beat count on the video's clock:** taps are recorded in video time, not wall-clock time, so tapping along at 0.5x gives the same tempo as at 1x. A least-squares line through the taps gives the tempo and the first "1". The clicks are written to an audio file and mixed into the video as an extra track with `AVMutableComposition`, so they slow down, seek and loop together with the music, with no syncing code at all.
 - **No third-party dependencies:** SwiftUI, SwiftData, AVFoundation, Swift Charts, Keychain and URLSession only.
 - **Localisation:** English source strings in code, translations in a String Catalog. Shared components take `LocalizedStringResource` so labels passed into them are still translated, and dates and weekday names come from the user's locale.
 
@@ -124,12 +132,12 @@ docker compose --profile full up -d --build    # Postgres + API on http://localh
 
 ## Tests
 
-- **iOS:** about 90 unit tests (Swift Testing) for timing, stats, loops, formatting, sync merging and SwiftData behaviour.
+- **iOS:** about 120 unit tests (Swift Testing) for timing, stats, loops, beat counting and the click track, formatting, sync merging and SwiftData behaviour.
 - **Backend:** about 30 integration tests (JUnit 5 + Testcontainers) covering auth, sync conflicts, ownership checks and stats SQL. CI runs them on every change.
 
 ## Roadmap
 
 - Rate limiting, email verification and password reset
-- Metronome and BPM-aligned loops (count-in "5, 6, 7, 8")
+- A-B loops that snap to whole eights, and a "5, 6, 7, 8" count-in before each loop
 - Record yourself and compare side by side with the original
 - Optional video upload to S3 with presigned URLs
