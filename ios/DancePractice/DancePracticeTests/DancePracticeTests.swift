@@ -215,6 +215,24 @@ struct PracticeRoomTests {
         #expect(PracticeRoom(name: "A", videoFileName: "a.mov").fileNames == ["a.mov"])
         #expect(PracticeRoom(name: "B", videoFileName: "b.mov", coverFileName: "b.jpg").fileNames == ["b.mov", "b.jpg"])
     }
+
+    @Test func beatGridIsSavedWithTheRoomButIsNotASyncEdit() throws {
+        let context = try makeContext()
+        let room = PracticeRoom(name: "Smoothie", videoFileName: "a.mov")
+        context.insert(room)
+        room.needsSync = false
+        var grid = BeatGrid()
+        grid.add(BeatSegment(start: 12, bpm: 118))
+        room.beatGrid = grid
+        try context.save()
+
+        let fetched = try #require(try context.fetch(FetchDescriptor<PracticeRoom>()).first)
+        #expect(fetched.beatGrid == grid)
+        #expect(!fetched.needsSync)
+
+        fetched.beatGrid = BeatGrid()
+        #expect(fetched.beatGridData == nil)
+    }
 }
 
 struct RoomFilterTests {
@@ -760,6 +778,9 @@ struct GuestImporterTests {
     @Test func copiesRoomsAndSessionsWithTheirLinks() throws {
         let guest = try makeContext(), account = try makeContext()
         let room = PracticeRoom(name: "Smoothie", videoFileName: "missing.mov", genre: .kpop)
+        var grid = BeatGrid()
+        grid.add(BeatSegment(start: 3, bpm: 100))
+        room.beatGrid = grid
         guest.insert(room)
         guest.insert(PracticeSession(startedAt: .now, duration: 600, room: room))
         try guest.save()
@@ -775,6 +796,7 @@ struct GuestImporterTests {
         #expect(copy.videoFileName != room.videoFileName)
         #expect(copy.sessions.count == 1)
         #expect(try guest.fetchCount(FetchDescriptor<PracticeRoom>()) == 1)
+        #expect(copy.beatGrid == room.beatGrid)
     }
 
     @Test func importingAgainUpdatesInsteadOfDuplicating() throws {

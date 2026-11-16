@@ -8,6 +8,10 @@ import SwiftUI
 struct PlayerScreen: View {
     let videoURL: URL
     let title: String
+    /// Counts saved for this video earlier.
+    var beatGrid = BeatGrid()
+    /// Called whenever the counts change, so the host can save them.
+    var onBeatGridChange: ((BeatGrid) -> Void)?
     /// Called when leaving the screen or the app goes to the background. The player doesn't store anything itself.
     var onPracticeFinished: ((PracticeRecord) -> Void)?
 
@@ -56,7 +60,11 @@ struct PlayerScreen: View {
         .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
         .statusBarHidden(isFullscreen)
         .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
-        .task { await viewModel.load(url: videoURL) }
+        .task {
+            viewModel.restoreBeatGrid(beatGrid)
+            viewModel.onBeatGridChange = onBeatGridChange
+            await viewModel.load(url: videoURL)
+        }
         .onChange(of: viewModel.isPlaying) { _, isPlaying in
             if isPlaying {
                 scheduleAutoHide()

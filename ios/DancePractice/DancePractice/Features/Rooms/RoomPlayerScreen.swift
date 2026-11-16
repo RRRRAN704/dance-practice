@@ -23,9 +23,13 @@ struct RoomPlayerScreen: View {
     var body: some View {
         Group {
             if hasVideo {
-                PlayerScreen(videoURL: room.videoURL, title: room.name) { record in
-                    log(record)
-                }
+                PlayerScreen(
+                    videoURL: room.videoURL,
+                    title: room.name,
+                    beatGrid: room.beatGrid,
+                    onBeatGridChange: { room.beatGrid = $0 },
+                    onPracticeFinished: log
+                )
             } else {
                 MissingVideoView(room: room) { hasVideo = true }
             }

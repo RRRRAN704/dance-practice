@@ -66,6 +66,8 @@ enum GuestImporter {
             room.id = id
             room.genreRaw = source.genreRaw
             room.lastOpenedAt = source.lastOpenedAt
+            // Comes along with the copied video it was tapped against.
+            room.beatGridData = source.beatGridData
             account.insert(room)
             roomsByID[id] = room
             imported.rooms += 1

@@ -31,7 +31,11 @@ final class PlayerViewModel {
     private(set) var videoSize: CGSize = .zero
     /// One slot per thumbnail; nil until that frame is decoded.
     private(set) var thumbnails: [CGImage?] = []
-    private(set) var beatGrid = BeatGrid()
+    private(set) var beatGrid = BeatGrid() {
+        didSet {
+            if beatGrid != oldValue { onBeatGridChange?(beatGrid) }
+        }
+    }
     private(set) var isBeatCountVisible = true
     /// The tap pad is up and taps are being collected.
     private(set) var isTapping = false
@@ -39,6 +43,8 @@ final class PlayerViewModel {
     /// The last attempt was too uneven to use; the pad asks for another go.
     private(set) var tapsWereUneven = false
 
+    /// Lets the host save the counts; the player itself doesn't store anything.
+    @ObservationIgnored var onBeatGridChange: ((BeatGrid) -> Void)?
     @ObservationIgnored private let engine = PlayerEngine()
     @ObservationIgnored private var isScrubbing = false
     @ObservationIgnored private var resumeAfterScrubbing = false
@@ -226,6 +232,14 @@ final class PlayerViewModel {
     }
 
     // MARK: - Beat count
+
+    /// Counts saved earlier for this video. Doesn't report back through `onBeatGridChange`.
+    func restoreBeatGrid(_ grid: BeatGrid) {
+        let callback = onBeatGridChange
+        onBeatGridChange = nil
+        beatGrid = grid
+        onBeatGridChange = callback
+    }
 
     /// Shows the tap pad. Starts playback, since taps follow the music.
     func startTapping() {
