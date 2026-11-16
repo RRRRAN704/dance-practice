@@ -316,6 +316,16 @@
         }
       }
     },
+    "Click Sound" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滴答声"
+          }
+        }
+      }
+    },
     "Cloud Sync" : {
       "localizations" : {
         "zh-Hans" : {
@@ -824,16 +834,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "小时"
-          }
-        }
-      }
-    },
-    "Hide Count" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "隐藏数拍"
           }
         }
       }

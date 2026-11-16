@@ -33,9 +33,13 @@ final class PlayerViewModel {
     private(set) var thumbnails: [CGImage?] = []
     private(set) var beatGrid = BeatGrid() {
         didSet {
-            if beatGrid != oldValue { onBeatGridChange?(beatGrid) }
+            guard beatGrid != oldValue else { return }
+            onBeatGridChange?(beatGrid)
+            rebuildClickTrack()
         }
     }
+    /// Remembered across videos and launches, like the pinned controls.
+    private(set) var isClickSoundOn = UserDefaults.standard.object(forKey: PlayerViewModel.clickSoundKey) as? Bool ?? true
     private(set) var isBeatCountVisible = true
     /// The tap pad is up and taps are being collected.
     private(set) var isTapping = false
@@ -49,6 +53,11 @@ final class PlayerViewModel {
     @ObservationIgnored private var isScrubbing = false
     @ObservationIgnored private var resumeAfterScrubbing = false
     @ObservationIgnored private var practiceTimer = PracticeTimer()
+    @ObservationIgnored private var clickTrackTask: Task<Void, Never>?
+    /// The click file in use, deleted when it's replaced.
+    @ObservationIgnored private var clickTrackURL: URL?
+    private static let clickSoundKey = "player.clickSound"
+    private static let clickFilePrefix = "beat-clicks-"
 
     var player: AVPlayer { engine.player }
 
@@ -97,6 +106,10 @@ final class PlayerViewModel {
             markB = nil
             isLoopEnabled = false
             engine.setRate(Float(speed))
+            engine.setClickVolume(isClickSoundOn ? 1 : 0)
+            Self.removeLeftoverClickFiles()
+            clickTrackURL = nil
+            rebuildClickTrack()
         } catch {
             errorMessage = String(localized: "Couldn't load the video: \(error.localizedDescription)")
             return
@@ -293,6 +306,61 @@ final class PlayerViewModel {
 
     func clearBeatCounts() {
         beatGrid.removeAll()
+    }
+
+    func toggleClickSound() {
+        isClickSoundOn.toggle()
+        UserDefaults.standard.set(isClickSoundOn, forKey: Self.clickSoundKey)
+        engine.setClickVolume(isClickSoundOn ? 1 : 0)
+    }
+
+    /// Writes a new click file for the current counts (off the main thread) and mixes it into playback.
+    /// Rapid changes collapse into one rebuild; a rebuild in progress is abandoned for the newer one.
+    private func rebuildClickTrack() {
+        clickTrackTask?.cancel()
+        guard duration > 0 else { return }
+        let clicks = ClickTrack.clicks(for: beatGrid, duration: duration)
+        let duration = duration
+        clickTrackTask = Task {
+            try? await Task.sleep(for: .milliseconds(200))
+            guard !Task.isCancelled else { return }
+            var newURL: URL?
+            if !clicks.isEmpty {
+                let url = FileManager.default.temporaryDirectory
+                    .appending(path: "\(Self.clickFilePrefix)\(UUID().uuidString).caf")
+                do {
+                    try await Task.detached(priority: .userInitiated) {
+                        try ClickTrack.write(clicks, duration: duration, to: url)
+                    }.value
+                } catch {
+                    return
+                }
+                newURL = url
+            }
+            guard !Task.isCancelled else {
+                newURL.map { try? FileManager.default.removeItem(at: $0) }
+                return
+            }
+            do {
+                try await engine.setClickTrack(newURL)
+            } catch {
+                newURL.map { try? FileManager.default.removeItem(at: $0) }
+                return
+            }
+            if let old = clickTrackURL {
+                try? FileManager.default.removeItem(at: old)
+            }
+            clickTrackURL = newURL
+        }
+    }
+
+    /// Click files from an earlier player that closed (or crashed) before tidying up.
+    private static func removeLeftoverClickFiles() {
+        let directory = FileManager.default.temporaryDirectory
+        let names = (try? FileManager.default.contentsOfDirectory(atPath: directory.path)) ?? []
+        for name in names where name.hasPrefix(clickFilePrefix) {
+            try? FileManager.default.removeItem(at: directory.appending(path: name))
+        }
     }
 
     // MARK: - Private

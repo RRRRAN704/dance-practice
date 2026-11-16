@@ -3,7 +3,7 @@
 //  DancePracticeTests
 //
 
-import Foundation
+import AVFoundation
 import Testing
 @testable import DancePractice
 
@@ -155,5 +155,61 @@ private extension BeatGrid {
         var copy = self
         copy.add(segment)
         return copy
+    }
+}
+
+struct ClickTrackTests {
+    private func grid(_ segments: BeatSegment...) -> BeatGrid {
+        var grid = BeatGrid()
+        segments.forEach { grid.add($0) }
+        return grid
+    }
+
+    @Test func clickOnEveryBeatWithTheOneMarked() {
+        let clicks = ClickTrack.clicks(for: grid(BeatSegment(start: 1, bpm: 120)), duration: 6)
+        #expect(clicks.map(\.time) == [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5])
+        #expect(clicks.filter(\.isDownbeat).map(\.time) == [1, 5])
+    }
+
+    @Test func silentWhereCountingStopped() {
+        var grid = grid(BeatSegment(start: 0, bpm: 60))
+        grid.stop(at: 3)
+        #expect(ClickTrack.clicks(for: grid, duration: 10).map(\.time) == [0, 1, 2])
+    }
+
+    @Test func nextSegmentTakesOverWithoutDoubleClicks() {
+        let clicks = ClickTrack.clicks(
+            for: grid(BeatSegment(start: 0, bpm: 60), BeatSegment(start: 20.5, bpm: 120)),
+            duration: 22
+        )
+        // The old segment clicks until just before the new "1" (20 s is outside the 0.075 s early window).
+        #expect(clicks.map(\.time).suffix(5) == [19, 20, 20.5, 21, 21.5])
+        #expect(clicks.first { $0.time == 20.5 }?.isDownbeat == true)
+    }
+
+    @Test func noCountsNoClicks() {
+        #expect(ClickTrack.clicks(for: BeatGrid(), duration: 30).isEmpty)
+    }
+
+    @Test func writtenFileHasTheVideoLengthAndSoundOnTheBeats() throws {
+        let url = FileManager.default.temporaryDirectory.appending(path: "click-test-\(UUID().uuidString).caf")
+        defer { try? FileManager.default.removeItem(at: url) }
+        let clicks = [ClickTrack.Click(time: 0.5, isDownbeat: true), ClickTrack.Click(time: 1.99, isDownbeat: false)]
+
+        try ClickTrack.write(clicks, duration: 2.5, to: url)
+
+        let file = try AVAudioFile(forReading: url)
+        #expect(file.length == Int64(2.5 * ClickTrack.sampleRate))
+        let buffer = try #require(AVAudioPCMBuffer(pcmFormat: file.processingFormat, frameCapacity: AVAudioFrameCount(file.length)))
+        try file.read(into: buffer)
+        let samples = UnsafeBufferPointer(start: buffer.floatChannelData![0], count: Int(buffer.frameLength))
+        func loudest(from: Double, to: Double) -> Float {
+            samples[Int(from * ClickTrack.sampleRate)..<Int(to * ClickTrack.sampleRate)].map(abs).max() ?? 0
+        }
+        #expect(loudest(from: 0, to: 0.49) == 0)
+        #expect(loudest(from: 0.5, to: 0.55) > 0.1)
+        #expect(loudest(from: 0.6, to: 1.98) == 0)
+        // This click starts just before the one-second chunk boundary and runs over it.
+        #expect(loudest(from: 2.0, to: 2.02) > 0.01)
     }
 }
