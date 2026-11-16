@@ -217,6 +217,7 @@ struct PlayerScreen: View {
                 tapCount: viewModel.tapTempo.count,
                 isUneven: viewModel.tapsWereUneven,
                 isPlaying: viewModel.isPlaying,
+                isCalibrating: viewModel.calibratingSegmentID != nil,
                 onTap: viewModel.tapBeat,
                 onDone: viewModel.finishTapping,
                 onCancel: viewModel.cancelTapping

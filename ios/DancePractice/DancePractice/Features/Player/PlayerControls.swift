@@ -74,7 +74,7 @@ struct LoopButton: View {
     }
 }
 
-/// Beat count menu: tap along to start counting, stop where the music stops, show/hide, clear.
+/// Beat count menu: tap along to start counting, stop where the music stops, count/click on or off, clear.
 struct BeatCountButton: View {
     let viewModel: PlayerViewModel
     var showsTitle = true
@@ -106,17 +106,19 @@ struct BeatCountButton: View {
             Label(viewModel.beatGrid.isEmpty ? "Tap Along to Count" : "Tap Along from Here", systemImage: "hand.tap")
         }
         if viewModel.beatGrid.segment(at: viewModel.currentTime) != nil {
+            Button(action: viewModel.startCalibrating) {
+                Label("Fine-Tune Tempo Here", systemImage: "tuningfork")
+            }
             Button(action: viewModel.stopCountingHere) {
                 Label("Stop Counting Here", systemImage: "stop.circle")
             }
         }
         if !viewModel.beatGrid.isEmpty {
-            Button(action: viewModel.toggleBeatCountVisible) {
-                if viewModel.isBeatCountVisible {
-                    Label("Hide Count", systemImage: "eye.slash")
-                } else {
-                    Label("Show Count", systemImage: "eye")
-                }
+            Toggle(isOn: Binding(get: { viewModel.isBeatCountVisible }, set: { _ in viewModel.toggleBeatCountVisible() })) {
+                Label("Show Count", systemImage: "eye")
+            }
+            Toggle(isOn: Binding(get: { viewModel.isClickSoundOn }, set: { _ in viewModel.toggleClickSound() })) {
+                Label("Click Sound", systemImage: "speaker.wave.2")
             }
             Button(role: .destructive, action: viewModel.clearBeatCounts) {
                 Label("Clear All Counts", systemImage: "trash")

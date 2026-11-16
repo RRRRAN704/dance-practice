@@ -10,6 +10,8 @@ struct TapTempoPad: View {
     let tapCount: Int
     let isUneven: Bool
     let isPlaying: Bool
+    /// Correcting an existing count's tempo rather than starting a new one.
+    var isCalibrating = false
     let onTap: () -> Void
     let onDone: () -> Void
     let onCancel: () -> Void
@@ -36,11 +38,17 @@ struct TapTempoPad: View {
             Text(message)
                 .font(.subheadline.weight(.semibold))
                 .multilineTextAlignment(.center)
-            HStack(spacing: 6) {
-                ForEach(1...TapTempo.maximumTaps, id: \.self) { index in
-                    Circle()
-                        .fill(index <= tapCount ? Theme.accent : Color.white.opacity(0.3))
-                        .frame(width: 10, height: 10)
+            // One row per eight. The second row is optional: more taps, steadier tempo.
+            VStack(spacing: 6) {
+                ForEach(0..<TapTempo.maximumTaps / BeatGrid.countsPerEight, id: \.self) { row in
+                    HStack(spacing: 6) {
+                        ForEach(1...BeatGrid.countsPerEight, id: \.self) { column in
+                            let index = row * BeatGrid.countsPerEight + column
+                            Circle()
+                                .fill(index <= tapCount ? Theme.accent : Color.white.opacity(row == 0 ? 0.3 : 0.15))
+                                .frame(width: 10, height: 10)
+                        }
+                    }
                 }
             }
         }
@@ -68,7 +76,12 @@ struct TapTempoPad: View {
             return "Play the video, then tap along"
         }
         if isUneven {
-            return "Those taps were uneven. Try again from 1"
+            return isCalibrating
+                ? "Those taps didn't match the count. Try again from a 1"
+                : "Those taps were uneven. Try again from 1"
+        }
+        if isCalibrating {
+            return "Tap along from any 1 to fine-tune the tempo"
         }
         return "Tap anywhere on the beat, starting from 1"
     }

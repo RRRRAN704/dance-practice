@@ -20,6 +20,9 @@ final class PlayerEngine {
     nonisolated(unsafe) private var endObserver: NSObjectProtocol?
     private var statusObservation: NSKeyValueObservation?
     private var loop: LoopRange?
+    /// The video being played, kept so the click track can be mixed in later.
+    private var asset: AVURLAsset?
+    private var clickVolume: Float = 1
     private var duration: Double = 0
     private var isSeeking = false
     private var pendingSeek: Double?
@@ -72,6 +75,7 @@ final class PlayerEngine {
         // Keep the original pitch when slowing down; spectral sounds best for music.
         item.audioTimePitchAlgorithm = .spectral
 
+        self.asset = asset
         setLoop(nil)
         player.replaceCurrentItem(with: item)
         duration = loadedDuration.isFinite ? loadedDuration : 0
@@ -133,6 +137,76 @@ final class PlayerEngine {
         if !range.contains(currentTime) {
             seek(to: range.start)
         }
+    }
+
+    // MARK: - Click track
+
+    /// Plays the video with `clickTrack` mixed in as an extra audio track, or without one when nil.
+    /// Because the clicks become part of the same item, speed, seeking and A-B loops apply to them
+    /// exactly as to the music. Swapping the item keeps the position, play state, speed and loop.
+    func setClickTrack(_ clickTrack: URL?) async throws {
+        guard let asset else { return }
+        let item: AVPlayerItem
+        if let clickTrack {
+            item = try await Self.itemWithClicks(video: asset, clicks: AVURLAsset(url: clickTrack))
+        } else {
+            item = AVPlayerItem(asset: asset)
+        }
+        item.audioTimePitchAlgorithm = .spectral
+        item.audioMix = await clickMix(for: item)
+
+        // Read after the await: playback carried on while the item was being built.
+        let time = currentTime
+        let wasPlaying = player.rate != 0
+        player.replaceCurrentItem(with: item)
+        observeEnd(of: item)
+        seek(to: time)
+        if wasPlaying {
+            player.playImmediately(atRate: player.defaultRate)
+        }
+    }
+
+    /// 0 silences the clicks without rebuilding anything.
+    func setClickVolume(_ volume: Float) {
+        clickVolume = volume
+        guard let item = player.currentItem else { return }
+        Task { item.audioMix = await clickMix(for: item) }
+    }
+
+    /// The video's own tracks plus the clicks, all over the video's full length.
+    private static func itemWithClicks(video: AVURLAsset, clicks: AVURLAsset) async throws -> AVPlayerItem {
+        let composition = AVMutableComposition()
+        let duration = try await video.load(.duration)
+        let range = CMTimeRange(start: .zero, duration: duration)
+
+        for track in try await video.loadTracks(withMediaType: .video) {
+            let copy = composition.addMutableTrack(withMediaType: .video, preferredTrackID: kCMPersistentTrackID_Invalid)
+            try copy?.insertTimeRange(range, of: track, at: .zero)
+            // Without this, portrait phone videos would play sideways.
+            copy?.preferredTransform = try await track.load(.preferredTransform)
+        }
+        for track in try await video.loadTracks(withMediaType: .audio) {
+            let copy = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: kCMPersistentTrackID_Invalid)
+            try copy?.insertTimeRange(range, of: track, at: .zero)
+        }
+        if let track = try await clicks.loadTracks(withMediaType: .audio).first {
+            let clickDuration = try await clicks.load(.duration)
+            let copy = composition.addMutableTrack(withMediaType: .audio, preferredTrackID: Self.clickTrackID)
+            try copy?.insertTimeRange(CMTimeRange(start: .zero, duration: min(clickDuration, duration)), of: track, at: .zero)
+        }
+        return AVPlayerItem(asset: composition)
+    }
+
+    private static let clickTrackID: CMPersistentTrackID = 1_000
+
+    /// Sets the click track's volume; nil when the item has no click track.
+    private func clickMix(for item: AVPlayerItem) async -> AVAudioMix? {
+        guard let track = try? await item.asset.loadTrack(withTrackID: Self.clickTrackID) else { return nil }
+        let parameters = AVMutableAudioMixInputParameters(track: track)
+        parameters.setVolume(clickVolume, at: .zero)
+        let mix = AVMutableAudioMix()
+        mix.inputParameters = [parameters]
+        return mix
     }
 
     // MARK: - Private

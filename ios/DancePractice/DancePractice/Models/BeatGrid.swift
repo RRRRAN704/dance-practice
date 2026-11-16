@@ -5,6 +5,14 @@
 
 import Foundation
 
+/// One tap along with the music: which beat of the segment it was meant for, and when it landed.
+struct BeatTap: Codable, Equatable {
+    /// 0 is the segment's first "1".
+    let beat: Int
+    /// Video seconds.
+    let time: Double
+}
+
 /// A stretch of video with a steady beat. Counting starts on a "1" at `start` and runs until the
 /// next segment begins, `end`, or the end of the video. All times are video seconds.
 struct BeatSegment: Codable, Equatable, Identifiable {
@@ -14,6 +22,9 @@ struct BeatSegment: Codable, Equatable, Identifiable {
     var bpm: Double
     /// Where counting stops; nil means it runs on until the next segment.
     var end: Double?
+    /// The taps `start` and `bpm` were worked out from, kept so a later calibration can refit them all.
+    /// nil for counts saved before calibration existed.
+    var taps: [BeatTap]?
 
     /// Video seconds per beat.
     var beatInterval: Double { 60 / bpm }
@@ -65,6 +76,13 @@ struct BeatGrid: Codable, Equatable {
         let replaceWindow = Double(Self.countsPerEight) * segment.beatInterval
         segments.removeAll { abs($0.start - segment.start) < replaceWindow }
         segments.append(segment)
+        segments.sort { $0.start < $1.start }
+    }
+
+    /// Updates a segment in place (after calibrating it), matched by id.
+    mutating func replace(_ segment: BeatSegment) {
+        guard let index = segments.firstIndex(where: { $0.id == segment.id }) else { return }
+        segments[index] = segment
         segments.sort { $0.start < $1.start }
     }
 
