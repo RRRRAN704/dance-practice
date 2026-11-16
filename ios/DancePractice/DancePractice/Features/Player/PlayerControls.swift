@@ -106,6 +106,9 @@ struct BeatCountButton: View {
             Label(viewModel.beatGrid.isEmpty ? "Tap Along to Count" : "Tap Along from Here", systemImage: "hand.tap")
         }
         if viewModel.beatGrid.segment(at: viewModel.currentTime) != nil {
+            Button(action: viewModel.startCalibrating) {
+                Label("Fine-Tune Tempo Here", systemImage: "tuningfork")
+            }
             Button(action: viewModel.stopCountingHere) {
                 Label("Stop Counting Here", systemImage: "stop.circle")
             }

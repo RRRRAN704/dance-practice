@@ -722,6 +722,16 @@
         }
       }
     },
+    "Fine-Tune Tempo Here" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从这里校准速度"
+          }
+        }
+      }
+    },
     "Fullscreen" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1746,6 +1756,16 @@
         }
       }
     },
+    "Tap along from any 1 to fine-tune the tempo" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从任意一个 1 开始跟着点，校准速度"
+          }
+        }
+      }
+    },
     "Tap Along from Here" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1911,6 +1931,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "本周练习"
+          }
+        }
+      }
+    },
+    "Those taps didn't match the count. Try again from a 1" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "和原来的拍子对不上，请从某个 1 重新开始"
           }
         }
       }

@@ -65,6 +65,13 @@ struct TapTempoTests {
         #expect(tempo.count == 1)
     }
 
+    @Test func keepsTappingPastOneEight() throws {
+        let tempo = tapped(start: 0, interval: 0.5, count: 16)
+        #expect(tempo.count == 16)
+        #expect(tempo.beatTaps.last == BeatTap(beat: 15, time: 7.5))
+        _ = try segment(tempo.estimate)
+    }
+
     @Test func seekingBackStartsOver() {
         var tempo = tapped(start: 30, interval: 0.5, count: 3)
         tempo.tap(at: 12)
@@ -211,5 +218,72 @@ struct ClickTrackTests {
         #expect(loudest(from: 0.6, to: 1.98) == 0)
         // This click starts just before the one-second chunk boundary and runs over it.
         #expect(loudest(from: 2.0, to: 2.02) > 0.01)
+    }
+}
+
+struct CalibrationTests {
+    /// A segment tapped slightly too fast: 0.495 s per beat when the music is 0.5 s (about 121.2 BPM vs 120).
+    private func rushedSegment() -> BeatSegment {
+        let taps = (0..<8).map { BeatTap(beat: $0, time: 10 + Double($0) * 0.495) }
+        return BeatSegment(start: 10, bpm: 60 / 0.495, taps: taps)
+    }
+
+    private func tapped(from start: Double, count: Int = 8, interval: Double = 0.5) -> TapTempo {
+        var tempo = TapTempo()
+        for i in 0..<count { tempo.tap(at: start + Double(i) * interval) }
+        return tempo
+    }
+
+    @Test func tapsLaterInTheSongFixTheTempo() throws {
+        let segment = rushedSegment()
+        // Beat 112 of the real music is at 10 + 112 × 0.5 = 66 s; by then the rushed count is 0.56 s early.
+        let estimate = tapped(from: 66).calibrated(segment)
+        guard case let .segment(start, bpm) = estimate else {
+            Issue.record("expected a segment, got \(estimate)")
+            return
+        }
+        #expect(abs(bpm - 120) < 0.3)
+        #expect(abs(start - 10) < 0.05)
+    }
+
+    @Test func calibrationTapsArePlacedOnTheNearestEight() {
+        let taps = tapped(from: 66).calibrationTaps(for: rushedSegment())
+        #expect(taps.count == 16)
+        #expect(taps[8] == BeatTap(beat: 112, time: 66))
+        #expect(taps.last?.beat == 119)
+    }
+
+    @Test func countsSavedWithoutTapsUseTheirStart() {
+        let old = BeatSegment(start: 10, bpm: 60 / 0.495)
+        let taps = tapped(from: 66).calibrationTaps(for: old)
+        #expect(taps.first == BeatTap(beat: 0, time: 10))
+        #expect(taps.count == 9)
+    }
+
+    @Test func aDifferentTempoIsRejected() {
+        // Steady taps, but at 100 BPM against a 120 BPM count: different music, not a small correction.
+        let segment = BeatSegment(start: 10, bpm: 120, taps: (0..<8).map { BeatTap(beat: $0, time: 10 + Double($0) * 0.5) })
+        #expect(tapped(from: 66, interval: 0.6).calibrated(segment) == .uneven)
+    }
+
+    @Test func needsEnoughTapsOfItsOwn() {
+        #expect(tapped(from: 66, count: 3).calibrated(rushedSegment()) == .needMoreTaps)
+    }
+
+    @Test func replacingKeepsTheSegmentAndOrder() {
+        var grid = BeatGrid()
+        grid.add(BeatSegment(start: 10, bpm: 121))
+        grid.add(BeatSegment(start: 80, bpm: 100))
+        var segment = grid.segments[0]
+        segment.bpm = 120
+        grid.replace(segment)
+        #expect(grid.segments.map(\.bpm) == [120, 100])
+    }
+
+    @Test func countsSavedBeforeCalibrationStillLoad() throws {
+        let json = #"{"segments":[{"id":"8D3F4E1A-1111-4C2B-9C1A-000000000001","start":10,"bpm":120}]}"#
+        let grid = try JSONDecoder().decode(BeatGrid.self, from: Data(json.utf8))
+        #expect(grid.segments.first?.taps == nil)
+        #expect(grid.position(at: 10)?.count == 1)
     }
 }

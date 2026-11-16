@@ -46,6 +46,8 @@ final class PlayerViewModel {
     private(set) var tapTempo = TapTempo()
     /// The last attempt was too uneven to use; the pad asks for another go.
     private(set) var tapsWereUneven = false
+    /// Set while the taps are correcting this segment's tempo rather than starting a new one.
+    private(set) var calibratingSegmentID: UUID?
 
     /// Lets the host save the counts; the player itself doesn't store anything.
     @ObservationIgnored var onBeatGridChange: ((BeatGrid) -> Void)?
@@ -256,8 +258,19 @@ final class PlayerViewModel {
 
     /// Shows the tap pad. Starts playback, since taps follow the music.
     func startTapping() {
+        beginTapping(calibrating: nil)
+    }
+
+    /// Shows the tap pad to correct the tempo of the segment counting now.
+    func startCalibrating() {
+        guard let segment = beatGrid.segment(at: currentTime) else { return }
+        beginTapping(calibrating: segment.id)
+    }
+
+    private func beginTapping(calibrating segmentID: UUID?) {
         tapTempo.reset()
         tapsWereUneven = false
+        calibratingSegmentID = segmentID
         isTapping = true
         if !isPlaying {
             engine.play()
@@ -274,13 +287,24 @@ final class PlayerViewModel {
         }
     }
 
-    /// Turns the taps so far into a segment; uneven taps clear and the pad stays up for another go.
+    /// Turns the taps so far into a segment, or corrects the one being calibrated.
+    /// Uneven taps clear and the pad stays up for another go.
     func finishTapping() {
-        switch tapTempo.estimate {
+        let calibrating = calibratingSegmentID.flatMap { id in beatGrid.segments.first { $0.id == id } }
+        let estimate = calibrating.map(tapTempo.calibrated) ?? tapTempo.estimate
+        switch estimate {
         case let .segment(start, bpm):
-            beatGrid.add(BeatSegment(start: start, bpm: bpm))
+            if var segment = calibrating {
+                segment.taps = tapTempo.calibrationTaps(for: segment)
+                segment.start = start
+                segment.bpm = bpm
+                beatGrid.replace(segment)
+            } else {
+                beatGrid.add(BeatSegment(start: start, bpm: bpm, taps: tapTempo.beatTaps))
+            }
             isBeatCountVisible = true
             isTapping = false
+            calibratingSegmentID = nil
         case .uneven:
             tapTempo.reset()
             tapsWereUneven = true
@@ -293,6 +317,7 @@ final class PlayerViewModel {
         isTapping = false
         tapTempo.reset()
         tapsWereUneven = false
+        calibratingSegmentID = nil
     }
 
     /// The music stops here (talking, a pause): stop counting from now on.
