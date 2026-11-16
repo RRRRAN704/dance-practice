@@ -28,6 +28,9 @@ final class PracticeRoom {
     var updatedAt: Date = Date(timeIntervalSince1970: 0)
     /// Edited since the last successful sync.
     var needsSync: Bool = true
+    /// The beat count for this room's video, as JSON; use `beatGrid`. Stays on this device: the counts
+    /// belong to the video file, and video files don't sync. So changing it isn't an edit for sync either.
+    var beatGridData: Data?
     /// Deleting the room keeps its sessions (they just lose the link).
     @Relationship(deleteRule: .nullify, inverse: \PracticeSession.room)
     var sessions: [PracticeSession] = []
@@ -61,6 +64,11 @@ final class PracticeRoom {
     var genre: DanceGenre? {
         get { genreRaw.flatMap(DanceGenre.init(rawValue:)) }
         set { genreRaw = newValue?.rawValue }
+    }
+
+    var beatGrid: BeatGrid {
+        get { beatGridData.flatMap { try? JSONDecoder().decode(BeatGrid.self, from: $0) } ?? BeatGrid() }
+        set { beatGridData = newValue.isEmpty ? nil : try? JSONEncoder().encode(newValue) }
     }
 
     var videoURL: URL { VideoFileStore.url(for: videoFileName) }

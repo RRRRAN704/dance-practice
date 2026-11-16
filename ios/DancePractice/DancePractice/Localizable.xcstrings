@@ -30,6 +30,16 @@
         }
       }
     },
+    "%lld BPM" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld BPM"
+          }
+        }
+      }
+    },
     "%lld days ago" : {
       "localizations" : {
         "en" : {
@@ -296,6 +306,16 @@
         }
       }
     },
+    "Clear All Counts" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除全部数拍"
+          }
+        }
+      }
+    },
     "Cloud Sync" : {
       "localizations" : {
         "zh-Hans" : {
@@ -362,6 +382,26 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "无法读取该视频"
+          }
+        }
+      }
+    },
+    "Count" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "数拍"
+          }
+        }
+      }
+    },
+    "Count %lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 拍"
           }
         }
       }
@@ -538,6 +578,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "确定删除账号吗？"
+          }
+        }
+      }
+    },
+    "Done" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
           }
         }
       }
@@ -778,6 +828,16 @@
         }
       }
     },
+    "Hide Count" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏数拍"
+          }
+        }
+      }
+    },
     "Hide Password" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1012,16 +1072,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "历史最长"
-          }
-        }
-      }
-    },
-    "Metronome" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "节拍"
           }
         }
       }
@@ -1276,6 +1326,16 @@
         }
       }
     },
+    "Play the video, then tap along" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "先播放视频，再跟着拍子点"
+          }
+        }
+      }
+    },
     "Please enter a valid email address" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1476,6 +1536,16 @@
         }
       }
     },
+    "Show Count" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示数拍"
+          }
+        }
+      }
+    },
     "Show Password" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1606,6 +1676,16 @@
         }
       }
     },
+    "Stop Counting Here" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从这里停止数拍"
+          }
+        }
+      }
+    },
     "Storage" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1662,6 +1742,36 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "点一个格子查看当天时长"
+          }
+        }
+      }
+    },
+    "Tap Along from Here" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "从这里重新跟拍"
+          }
+        }
+      }
+    },
+    "Tap Along to Count" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟拍定速"
+          }
+        }
+      }
+    },
+    "Tap anywhere on the beat, starting from 1" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟着音乐的拍子点屏幕任意位置，从 1 开始"
           }
         }
       }
@@ -1801,6 +1911,16 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "本周练习"
+          }
+        }
+      }
+    },
+    "Those taps were uneven. Try again from 1" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点得不太均匀，请从 1 重新开始"
           }
         }
       }

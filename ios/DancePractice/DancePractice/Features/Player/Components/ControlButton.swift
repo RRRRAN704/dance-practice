@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// Toggle-style button used for mirror / A-B loop / metronome.
+/// Toggle-style button used for mirror / A-B loop.
 struct ControlButton: View {
     let title: LocalizedStringResource
     let systemImage: String
@@ -14,26 +14,38 @@ struct ControlButton: View {
     var showsTitle = true
     let action: () -> Void
 
+    var body: some View {
+        Button(action: action) {
+            ControlButtonLabel(title: title, systemImage: systemImage, isActive: isActive, showsTitle: showsTitle)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text(title))
+    }
+}
+
+/// The look of `ControlButton`, also used as the label of menus that sit beside it (beat count).
+struct ControlButtonLabel: View {
+    let title: LocalizedStringResource
+    let systemImage: String
+    var isActive = false
+    var showsTitle = true
+
     @Environment(\.isEnabled) private var isEnabled
 
     var body: some View {
-        Button(action: action) {
-            Label { Text(title) } icon: { Image(systemName: systemImage) }
-                .labelStyle(TitleOrIconLabelStyle(showsTitle: showsTitle))
-                .font(.subheadline.weight(.semibold))
-                .lineLimit(1)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .foregroundStyle(isActive ? Theme.accent : .white)
-                .background(RoundedRectangle(cornerRadius: 12).fill(Theme.panel))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(isActive ? Theme.accent : Theme.panelBorder, lineWidth: isActive ? 1.5 : 1)
-                )
-        }
-        .buttonStyle(.plain)
-        .opacity(isEnabled ? 1 : 0.4)
-        .accessibilityLabel(Text(title))
+        Label { Text(title) } icon: { Image(systemName: systemImage) }
+            .labelStyle(TitleOrIconLabelStyle(showsTitle: showsTitle))
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .foregroundStyle(isActive ? Theme.accent : .white)
+            .background(RoundedRectangle(cornerRadius: 12).fill(Theme.panel))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(isActive ? Theme.accent : Theme.panelBorder, lineWidth: isActive ? 1.5 : 1)
+            )
+            .opacity(isEnabled ? 1 : 0.4)
     }
 }
 

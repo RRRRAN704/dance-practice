@@ -8,6 +8,10 @@ import SwiftUI
 struct PlayerScreen: View {
     let videoURL: URL
     let title: String
+    /// Counts saved for this video earlier.
+    var beatGrid = BeatGrid()
+    /// Called whenever the counts change, so the host can save them.
+    var onBeatGridChange: ((BeatGrid) -> Void)?
     /// Called when leaving the screen or the app goes to the background. The player doesn't store anything itself.
     var onPracticeFinished: ((PracticeRecord) -> Void)?
 
@@ -56,7 +60,11 @@ struct PlayerScreen: View {
         .toolbar(isFullscreen ? .hidden : .visible, for: .navigationBar)
         .statusBarHidden(isFullscreen)
         .persistentSystemOverlays(isFullscreen ? .hidden : .automatic)
-        .task { await viewModel.load(url: videoURL) }
+        .task {
+            viewModel.restoreBeatGrid(beatGrid)
+            viewModel.onBeatGridChange = onBeatGridChange
+            await viewModel.load(url: videoURL)
+        }
         .onChange(of: viewModel.isPlaying) { _, isPlaying in
             if isPlaying {
                 scheduleAutoHide()
@@ -115,6 +123,12 @@ struct PlayerScreen: View {
                     .padding(10)
                     .accessibilityLabel("Fullscreen")
                 }
+                .overlay(alignment: .topTrailing) {
+                    beatBadge.padding(10)
+                }
+                .overlay {
+                    tapPad
+                }
 
             VStack(spacing: 14) {
                 PlayerTimeline(viewModel: viewModel)
@@ -123,7 +137,7 @@ struct PlayerScreen: View {
                 HStack(spacing: 10) {
                     MirrorButton(viewModel: viewModel)
                     LoopButton(viewModel: viewModel)
-                    MetronomeButton()
+                    BeatCountButton(viewModel: viewModel)
                 }
 
                 HStack(spacing: 12) {
@@ -156,8 +170,16 @@ struct PlayerScreen: View {
                     .onChanged { _ in hideControlsTask?.cancel() }
                     .onEnded { _ in scheduleAutoHide() }
             )
-            .opacity(controlsVisible ? 1 : 0)
-            .allowsHitTesting(controlsVisible)
+            .opacity(controlsVisible && !viewModel.isTapping ? 1 : 0)
+            .allowsHitTesting(controlsVisible && !viewModel.isTapping)
+
+            // Stays up when the controls hide: the count matters most while dancing.
+            beatBadge
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+                .padding(.top, 64)
+                .padding(.trailing, 16)
+
+            tapPad
 
             if let toastMessage {
                 Text(toastMessage)
@@ -179,6 +201,27 @@ struct PlayerScreen: View {
             .clipped()
             .contentShape(Rectangle())
             .onTapGesture(perform: handleVideoTap)
+    }
+
+    // MARK: - Beat count
+
+    @ViewBuilder private var beatBadge: some View {
+        if let position = viewModel.beatPosition, !viewModel.isTapping {
+            BeatCountBadge(position: position)
+        }
+    }
+
+    @ViewBuilder private var tapPad: some View {
+        if viewModel.isTapping {
+            TapTempoPad(
+                tapCount: viewModel.tapTempo.count,
+                isUneven: viewModel.tapsWereUneven,
+                isPlaying: viewModel.isPlaying,
+                onTap: viewModel.tapBeat,
+                onDone: viewModel.finishTapping,
+                onCancel: viewModel.cancelTapping
+            )
+        }
     }
 
     // MARK: - Fullscreen
