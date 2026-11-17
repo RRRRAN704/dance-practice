@@ -625,6 +625,12 @@ struct APIErrorTests {
         #expect(APIError(status: 400, body: body) == .server(status: 400, message: "must be a well-formed email address"))
     }
 
+    @Test func rateLimitKeepsTheWait() {
+        let body = Data(#"{"status":429,"detail":"Too many attempts","retryAfterSeconds":42}"#.utf8)
+        #expect(APIError(status: 429, body: body) == .tooManyRequests(retryAfterSeconds: 42))
+        #expect(APIError(status: 429, body: Data()) == .tooManyRequests(retryAfterSeconds: nil))
+    }
+
     @Test func survivesANonJSONBody() {
         #expect(APIError(status: 502, body: Data("<html>".utf8)) == .server(status: 502, message: nil))
     }
