@@ -26,3 +26,10 @@ app:
     secret: ${JWT_SECRET:ZGV2LW9ubHktc2VjcmV0LWNoYW5nZS1tZS1pbi1wcm9kdWN0aW9uLTEyMzQ1Ng==}
     access-token-ttl: 15m
     refresh-token-ttl: 30d
+  # Token buckets on the public auth endpoints (see AuthRateLimits): a burst of `capacity`,
+  # refilled at `capacity` per `period`. Over the limit -> 429 with Retry-After.
+  rate-limit:
+    login-per-ip: { capacity: 10, period: 1m }
+    login-per-email: { capacity: 10, period: 15m }
+    register-per-ip: { capacity: 5, period: 1h }
+    refresh-per-ip: { capacity: 30, period: 1m }
