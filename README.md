@@ -10,6 +10,13 @@ An iOS app for learning choreography from videos. Slow the video down, mirror it
 **Live API:** <https://dance-api.flowbiterp.site/swagger-ui/index.html>
 
 <p>
+  <img src="docs/screenshots/player-loop.png" width="200" alt="Player: an A-B loop on the thumbnail timeline at 0.8x">
+  <img src="docs/screenshots/player-count.png" width="200" alt="Player: the beat count showing 4 of 8 over the video">
+  <img src="docs/screenshots/player-mirror.png" width="200" alt="Player: mirrored video at 1.35x">
+</p>
+<sub>Demo video: <a href="https://www.pexels.com/video/a-man-dancing-while-on-headphones-8628515/">Pexels</a> (free to use under the Pexels licence).</sub>
+
+<p>
   <img src="docs/screenshots/home.png" width="200" alt="Home tab: today, this week and streak, with recent rooms">
   <img src="docs/screenshots/rooms.png" width="200" alt="Rooms tab: practice rooms filtered by genre">
   <img src="docs/screenshots/stats.png" width="200" alt="Stats tab: totals, streaks and a 7-day trend chart">
