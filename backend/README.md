@@ -44,7 +44,7 @@ Swagger UI: http://localhost:8080/swagger-ui.html. `requests.http` walks through
 | GET | `/api/rooms` | Current rooms, newest edit first |
 | GET | `/api/stats/summary?zone=Europe/London` | Today/week/month/total, streaks, time per genre |
 
-Errors are RFC 9457 `application/problem+json`.
+Errors are RFC 9457 `application/problem+json`. Register, login and refresh are rate-limited: over the limit they answer `429` with a `Retry-After` header.
 
 ## Sync design
 
@@ -53,6 +53,22 @@ Errors are RFC 9457 `application/problem+json`.
 - **Conflicts**: rooms are last-write-wins on the device's `updatedAt`; deletions are final tombstones, so a stale copy can't bring a deleted room back. The losing device gets the winning version in the response.
 - **Idempotency**: ids are UUIDs generated on the device, so a retried request changes nothing.
 - **Ownership**: every pushed id is checked against the signed-in user.
+
+## Rate limiting
+
+Token buckets in memory (`ratelimit/`): a bucket holds up to `capacity` tokens, refills at `capacity` per `period`, and each request takes one. Limits are in `application.yml`:
+
+| Endpoint | Key | Limit |
+|---|---|---|
+| Login | client IP | 10 per minute |
+| Login | email (normalised) | 10 per 15 minutes, so one account can't be attacked from many IPs |
+| Register | client IP | 5 per hour |
+| Refresh | client IP | 30 per minute |
+
+- **Atomic:** buckets are immutable records replaced with `ConcurrentHashMap.compute`, which locks only that key; idle buckets that have refilled are evicted every 10 minutes.
+- **Real client IP:** Caddy overwrites `X-Forwarded-For` with the peer address and the API port isn't published, so `server.forward-headers-strategy=framework` makes `getRemoteAddr()` trustworthy.
+- **Trade-off:** someone who knows an email can lock that account's sign-in for a few minutes. That's much better than letting its password be guessed.
+- **One instance only:** with several API instances the buckets would need a shared store such as Redis.
 
 ## Test
 
