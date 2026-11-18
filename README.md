@@ -10,11 +10,26 @@ An iOS app for learning choreography from videos. Slow the video down, mirror it
 **Live API:** <https://dance-api.flowbiterp.site/swagger-ui/index.html>
 
 <p>
+  <img src="docs/screenshots/player-loop.png" width="200" alt="Player: an A-B loop on the thumbnail timeline at 0.8x">
+  <img src="docs/screenshots/player-count.png" width="200" alt="Player: the beat count showing 4 of 8 over the video">
+  <img src="docs/screenshots/player-mirror.png" width="200" alt="Player: mirrored video at 1.35x">
+</p>
+<sub>Demo video: <a href="https://www.pexels.com/video/a-man-dancing-while-on-headphones-8628515/">Pexels</a> (free to use under the Pexels licence).</sub>
+
+<p>
   <img src="docs/screenshots/home.png" width="200" alt="Home tab: today, this week and streak, with recent rooms">
   <img src="docs/screenshots/rooms.png" width="200" alt="Rooms tab: practice rooms filtered by genre">
   <img src="docs/screenshots/stats.png" width="200" alt="Stats tab: totals, streaks and a 7-day trend chart">
   <img src="docs/screenshots/stats-dark.png" width="200" alt="Stats tab in dark mode">
 </p>
+
+## Highlights
+
+- **Offline-first sync** in a single endpoint: a Postgres sequence as the cursor (device clocks never decide what's new), a per-user row lock, last-write-wins with tombstones, and device-generated ids so retries are harmless.
+- **Auth that holds up on the open internet:** short-lived JWTs, rotating refresh tokens stored hashed with reuse detection, and token-bucket rate limiting per IP and per account.
+- **Production on AWS, deployed by CI** with no long-lived credentials (GitHub OIDC → an AWS role → SSM), health-checked deploys with automatic rollback, and daily S3 backups with a restore drill.
+- **About 160 tests:** backend integration tests against a real Postgres (Testcontainers), and iOS unit tests for all the pure logic.
+- **iOS with no third-party dependencies:** the tempo is fitted to the user's taps by least squares, and the click track is mixed into the video with `AVMutableComposition` so it stays in sync at any speed.
 
 ## Features
 
@@ -80,6 +95,9 @@ flowchart LR
 ### Backend
 - **Java 21, Spring Boot 3.5, PostgreSQL 16**, with Flyway migrations and Spring Data JPA, plus JdbcTemplate for the stats SQL.
 - **Auth:** short-lived JWT access tokens and rotating refresh tokens, stored hashed. Reusing an old refresh token is treated as theft and signs the user out everywhere.
+- **Rate limiting** on sign-in, sign-up and token refresh, with no extra library: an in-memory token bucket per client IP, plus one per email address on sign-in so a password can't be guessed from many IPs at once. Over the limit the API answers `429` with `Retry-After`, and the app shows how long to wait.
+  - Buckets are immutable values swapped with `ConcurrentHashMap.compute`, so concurrent requests can't both take the last token; buckets that have refilled are cleaned up every 10 minutes.
+  - The client IP comes from `X-Forwarded-For`, which Caddy overwrites with the real address, so a spoofed header can't dodge the limit.
 - **Sync in one endpoint:** a device pushes its changes and pulls everything newer than its cursor in a single transaction.
   - The cursor comes from a Postgres sequence, so device clocks never decide what's new.
   - A per-user row lock stops a slow sync from committing behind a cursor that has already moved on.
@@ -133,11 +151,11 @@ docker compose --profile full up -d --build    # Postgres + API on http://localh
 ## Tests
 
 - **iOS:** about 120 unit tests (Swift Testing) for timing, stats, loops, beat counting and the click track, formatting, sync merging and SwiftData behaviour.
-- **Backend:** about 30 integration tests (JUnit 5 + Testcontainers) covering auth, sync conflicts, ownership checks and stats SQL. CI runs them on every change.
+- **Backend:** about 40 tests (JUnit 5): integration tests against Testcontainers covering auth, rate limits, sync conflicts, ownership checks and stats SQL, plus unit tests for the token bucket on a hand-moved clock (including a 16-thread race). CI runs them on every change.
 
 ## Roadmap
 
-- Rate limiting, email verification and password reset
+- Email verification and password reset
 - A-B loops that snap to whole eights, and a "5, 6, 7, 8" count-in before each loop
 - Record yourself and compare side by side with the original
 - Optional video upload to S3 with presigned URLs
